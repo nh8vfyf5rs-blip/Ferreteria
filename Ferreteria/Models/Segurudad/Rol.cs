@@ -1,0 +1,12 @@
+﻿namespace Ferreteria.Models.Segurudad
+{
+    public class Rol
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public ICollection<Usuario> usuario { get; set; } = [];
+
+        public ICollection<RolPermission> RolPermissions { get; set; } = [];
+
+    }
+}
