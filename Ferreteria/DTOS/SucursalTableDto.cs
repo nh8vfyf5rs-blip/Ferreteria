@@ -3,8 +3,10 @@
     public class SucursalTableDto
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string Direccion { get; set; }
-        public string Telefono { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Direccion { get; set; } = string.Empty;
+        public string Telefono { get; set; }=string.Empty;
+        public int TotalAlmacenes { get; set; }
+        public int TotalEmppleados{ get;set; }
     }
 }

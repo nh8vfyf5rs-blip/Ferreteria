@@ -16,7 +16,7 @@
     }
     public class DataTablesOrderDto
     {
-        public int column { get; set; }
+        public int Column { get; set; }
         public string Dir { get; set; } = "asc";
     }
 
