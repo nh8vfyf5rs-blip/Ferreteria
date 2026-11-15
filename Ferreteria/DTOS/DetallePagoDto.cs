@@ -1,13 +1,15 @@
 ﻿using Ferreteria.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Ferreteria.DTOS
 {
     public class DetallePagoDto
     {
-        public int Id { get; set; }
+        [Required]
+        [Range(typeof(decimal),"0.01","999999999")]
         public decimal Monto { get; set; }
-        public DateTime FechaPago { get; set; } 
+
+        [Required]
         public int MetodoPagoId { get; set; }
-        public int VentaId { get; set; }
     }
 }

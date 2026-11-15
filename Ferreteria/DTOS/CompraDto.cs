@@ -9,6 +9,8 @@ namespace Ferreteria.DTOS
         public decimal Total { get; set; }
         public int ProveedorId { get; set; }
         public int EmpleadoId { get; set; }
+        public int AlmacenId { get; set; }
+        public List<DetalleCompraDto> DetalleCompraDtos { get; set; }=new();
    
     }
 }

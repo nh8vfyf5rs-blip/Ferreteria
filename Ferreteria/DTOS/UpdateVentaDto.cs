@@ -1,10 +1,15 @@
-﻿namespace Ferreteria.DTOS
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Ferreteria.DTOS
 {
     public class UpdateVentaDto
     {
-        public DateTime FechaVenta { get; set; }
-        public decimal Total { get; set; }
+        [Required]
         public int ClienteId { get; set; }
+        [Required]
         public int EmpleadoId { get; set; }
+
+        [Required]
+        public int AlmacenId { get; set; }
     }
 }
