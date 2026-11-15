@@ -60,7 +60,7 @@ namespace Ferreteria.Data
              .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<UsuarioPermiso>()
-           .HasOne(up => up.permiso)
+           .HasOne(up => up.Permiso)
            .WithMany(p => p.UsuarioPermisos)
            .HasForeignKey(up => up.PermisoId)
            .OnDelete(DeleteBehavior.Cascade);
@@ -83,6 +83,52 @@ namespace Ferreteria.Data
          .HasForeignKey(p => p.MarcaId)
          .OnDelete(DeleteBehavior.Cascade);
 
+         modelBuilder.Entity<Compra>()
+        .HasOne(c => c.Almacen)
+        .WithMany()
+        .HasForeignKey(c => c.AlmacenId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+         modelBuilder.Entity<Venta>()
+        .HasOne(v => v.Almacen)
+        .WithMany()
+        .HasForeignKey(v => v.AlmacenId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+          modelBuilder.Entity<Inventario>()
+         .HasIndex(i => new { i.ProductoId, i.AlmacenId })
+         .IsUnique();
+
+         modelBuilder.Entity<Inventario>()
+         .HasOne(i => i.Almacen)
+         .WithMany(a=>a.Inventarios)
+         .HasForeignKey(i => i.AlmacenId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+         modelBuilder.Entity<Inventario>()
+         .HasOne(i => i.Producto)
+         .WithMany()
+         .HasForeignKey(i => i.ProductoId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+          modelBuilder.Entity<DetalleInventario>()
+         .HasOne(d => d.Inventario)
+         .WithMany(i => i.DetalleInventarios)
+         .HasForeignKey(d => d.InventarioId)
+         .OnDelete(DeleteBehavior.Restrict);
+
+
+            modelBuilder.Entity<DetalleInventario>()
+        .HasOne(d => d.Sucursal)
+        .WithMany(s=>s.DetalleInventario)
+        .HasForeignKey(d => d.SucursalId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+       modelBuilder.Entity<Venta>()
+     .HasOne(v=>v.Empleado)
+     .WithMany()
+     .HasForeignKey(v=>v.EmpleadoId)
+     .OnDelete(DeleteBehavior.Restrict);
         }
 
     }
