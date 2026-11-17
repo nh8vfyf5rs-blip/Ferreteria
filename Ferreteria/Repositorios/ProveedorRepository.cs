@@ -4,44 +4,48 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Repositorios
 {
-    public class ProveedorRepository : IProveedorRepository
+    public class ProveedorRepository(AppDbContext context) : IProveedorRepository
     {
-        public readonly AppDbContext _context;
-        public ProveedorRepository(AppDbContext context)
+        public async Task<Proveedor?> CreateAsync(Proveedor proveedor)
         {
-            _context = context;
+            var entry = await context.Proveedores.AddAsync(proveedor);
+            await context.SaveChangesAsync();
+            return entry.Entity;
         }
 
-            public async Task AddAsync(Proveedor proveedor)
+        public async Task<bool> DeleteAsync(int id)
         {
-           await _context.Proveedores.AddAsync(proveedor);
+            var proveedor = await context.Proveedores.FindAsync(id);
+
+            if (proveedor == null)
+                return false;
+
+            context.Proveedores.Remove(proveedor);
+            await context.SaveChangesAsync();
+            return true;
         }
 
-        public async Task Delete(Proveedor proveedor)
+        public async Task<IReadOnlyList<Proveedor>> GetAllAsync()
         {
-            _context.Proveedores.Remove(proveedor);
-        }
-
-        public async Task<IEnumerable<Proveedor>> GetAllAsync()
-        {
-            return await _context.Proveedores
-              .AsNoTracking()
-              .ToListAsync();
+            return await context.Proveedores
+                .AsNoTracking()
+                .Include(p => p.Compras)
+                .OrderBy(p => p.NombreEmpresa)
+                .ToListAsync();
         }
 
         public async Task<Proveedor?> GetByIdAsync(int id)
         {
-            return await _context.Proveedores.FindAsync(id);
+            return await context.Proveedores
+                .Include(p => p.Compras)
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        public async Task SaveAsync()
+        public async Task<bool> UpdateAsync(Proveedor proveedor)
         {
-           await _context.SaveChangesAsync();
-        }
-
-        public async Task Update(Proveedor proveedor)
-        {
-           _context.Proveedores.Update(proveedor);
+            context.Proveedores.Update(proveedor);
+            await context.SaveChangesAsync();
+            return true;
         }
     }
 }

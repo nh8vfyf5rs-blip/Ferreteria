@@ -4,46 +4,78 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Repositorios
 {
-    public class ClienteRepository : IClienteRepository
+    public class ClienteRepository(AppDbContext context) : IClienteRepository
     {
-        private readonly AppDbContext _context;
-        public ClienteRepository(AppDbContext context)
+        public async Task<Cliente?> CreateAsync(Cliente cliente)
         {
-            _context = context;
+            var entry = await context.Clientes.AddAsync(cliente);
+            await context.SaveChangesAsync();
+
+            return entry.Entity;
         }
 
-        public async Task AddAsync(Cliente cliente)
+        public async Task<bool> DeleteAsync(int id)
         {
-            await _context.Clientes.AddAsync(cliente);
+            var cliente = await context.Clientes.FindAsync(id);
+
+            if (cliente == null)
+                return false;
+
+            context.Clientes.Remove(cliente);
+            await context.SaveChangesAsync();
+
+            return true;
         }
 
-        public void Delete(Cliente cliente)
+        public async Task<IReadOnlyList<Cliente>> GetAllAsync()
         {
-             _context.Clientes.Remove(cliente);
-        }
-
-        public async Task<IEnumerable<Cliente>> GetAllAsync()
-        {
-            return await _context.Clientes
-                .AsNoTracking() 
+            return await context.Clientes
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
                 .ToListAsync();
         }
 
-        public async Task<Cliente> GetByIdAsync(int id)
+        public async Task<Cliente?> GetByIdAsync(int id)
         {
-            return await _context.Clientes.FindAsync(id);
+            return await context.Clientes
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
 
-        public async Task SaveAsync()
+        public async Task<bool> UpdateAsync(Cliente cliente)
         {
-            await _context.SaveChangesAsync();
-        }
-        
+            context.Clientes.Update(cliente);
+            await context.SaveChangesAsync();
 
-        public void UpdateAsync(Cliente cliente)
+            return true;
+        }
+
+        public async Task<bool> CedulaExistsAsync(
+            string cedula,
+            int? excludeId = null)
         {
-            _context.Clientes.Update(cliente);
+            if (string.IsNullOrWhiteSpace(cedula))
+                return false;
+
+            var cedulaNormalizada = cedula.Trim();
+
+            var query = context.Clientes
+                .AsNoTracking()
+                .Where(c => c.Cedula == cedulaNormalizada);
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(c => c.Id != excludeId.Value);
+            }
+
+            return await query.AnyAsync();
+        }
+
+        public async Task<bool> HasVentasAsync(int clienteId)
+        {
+            return await context.Ventas
+                .AsNoTracking()
+                .AnyAsync(v => v.ClienteId == clienteId);
         }
     }
-    }
+}
 

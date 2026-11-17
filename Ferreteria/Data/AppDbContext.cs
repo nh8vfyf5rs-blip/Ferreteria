@@ -21,7 +21,7 @@ namespace Ferreteria.Data
         public DbSet<Sucursal> Sucursales { get; set; }
         public DbSet<Empleado> Empleados { get; set; }
         public DbSet<Cargo> Cargos { get; set; }
-        public DbSet<MetodoPago> MetododoPagos { get; set; }
+        public DbSet<MetodoPago> MetodosPago { get; set; }
         public DbSet<Almacen>Almacenes { get; set; }
         public DbSet<Inventario> Inventarios { get; set; }
         public DbSet<MovimientoInventario> MovimientoInventarios { get; set; }
@@ -35,8 +35,13 @@ namespace Ferreteria.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Cliente>()
+            .HasIndex(c => c.Cedula)
+            .IsUnique();
 
             modelBuilder.Entity<RolPermiso>().HasKey(rp => new { rp.RolId, rp.PermisoId });
+
+            
 
             modelBuilder.Entity<RolPermiso>().
                 HasOne(rp => rp.Rol)
