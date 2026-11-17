@@ -1,5 +1,4 @@
-﻿using Ferreteria.Models;
-using Ferreteria.Models.Segurudad;
+﻿using Ferreteria.Models.Segurudad;
 
 namespace Ferreteria.Helpers
 {
@@ -13,12 +12,12 @@ namespace Ferreteria.Helpers
 
             var granted = usuario.UsuarioPermisos?
                 .Where(up => up.IsGranted)
-                .Select(up => up.permiso.Name)
+                .Select(up => up.Permiso.Name)
                 .ToList() ?? new List<string>();
 
             var denied = usuario.UsuarioPermisos?
                 .Where(up => !up.IsGranted)
-                .Select(up => up.permiso.Name)
+                .Select(up => up.Permiso.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var permission in granted)

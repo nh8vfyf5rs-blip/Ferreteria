@@ -11,6 +11,7 @@
         public virtual Empleado Empleado { get; set; } = null!;
         public int AlmacenId { get; set; }
         public virtual Almacen Almacen { get; set; } = null!;
+        public virtual Almacen Almacen { get; set; }=null!;
         public virtual ICollection<DetalleCompra> DetalleCompras { get; set; } = [];
 
     }
