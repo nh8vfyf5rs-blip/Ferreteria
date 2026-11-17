@@ -4,12 +4,11 @@ namespace Ferreteria.Repositorios
 {
     public interface IProductoRepository
     {
-        Task<IEnumerable<Producto>> GetAllAsync();
+        Task<IReadOnlyList<Producto>> GetAllAsync();
         Task<Producto?> GetByIdAsync(int id);
-        Task AddAsync(Producto Producto);
-        Task Update(Producto Producto);
-        Task Delete(Producto Producto);
-        Task SaveAsync();
-    
-}
+        Task<Producto?> CreateAsync(Producto producto);
+        Task<bool> UpdateAsync(Producto producto);
+        Task<bool> DeleteAsync(int id);
+
+    }
 }

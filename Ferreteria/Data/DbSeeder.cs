@@ -222,11 +222,11 @@ namespace Ferreteria.Data
         private static async Task SeedMetodosPagosAsync(AppDbContext context)
         {
 
-            if (await context.MetododoPagos.AnyAsync())
+            if (await context.MetodosPago.AnyAsync())
                 return;
 
 
-            context.MetododoPagos.AddRange(
+            context.MetodosPago.AddRange(
                 new MetodoPago { Name = "Efectivo" },
                 new MetodoPago { Name = "Tarjeta de Credito/Debito" },
                 new MetodoPago { Name = "Transferencia Bancaria"}

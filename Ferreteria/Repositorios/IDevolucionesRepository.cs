@@ -4,11 +4,10 @@ namespace Ferreteria.Repositorios
 {
     public interface IDevolucionesRepository
     {
-        Task<IEnumerable<Devoluciones>> GetAllAsync();
+       Task<IReadOnlyList<Devoluciones>> GetAllAsync();
         Task<Devoluciones?> GetByIdAsync(int id);
-        Task AddAsync(Devoluciones devoluciones);
-        Task Update(Devoluciones devoluciones);
-        Task Delete(Devoluciones devoluciones);
-        Task SaveAsync();
+        Task<Devoluciones?> CreateAsync(Devoluciones devolucion);
+        Task<bool> UpdateAsync(Devoluciones devolucion);
+        Task<bool> DeleteAsync(int id);
     }
 }

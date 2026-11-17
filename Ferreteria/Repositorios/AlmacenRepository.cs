@@ -4,43 +4,49 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Repositorios
 {
-    public class AlmacenRepository : IAlmacenRepository
+    public class AlmacenRepository(AppDbContext context) : IAlmacenRepository
     {
-        public readonly AppDbContext _context;
-        public AlmacenRepository(AppDbContext context)
+        public async Task<Almacen?> CreateAsync(Almacen almacen)
         {
-            _context = context;
-        }
-        public async Task AddAsync(Almacen Almacen)
-        {
-            await _context.Almacenes.AddAsync(Almacen);
-        }
+            var entry = await context.Almacenes.AddAsync(almacen);
+            await context.SaveChangesAsync();
 
-        public async Task Delete(Almacen Almacen)
-        {
-            _context.Almacenes.Remove(Almacen);
+            return entry.Entity;
         }
-
-        public async Task<IEnumerable<Almacen>> GetAllAsync()
+        public async Task<bool> DeleteAsync(int id)
         {
-            return await _context.Almacenes
-            .AsNoTracking()
-            .ToListAsync();
+            var almacen = await context.Almacenes.FindAsync(id);
+            if (almacen == null) return false;
+            
+            context.Almacenes.Remove(almacen);
+            await context.SaveChangesAsync();
+            return true;
         }
-
+        
+        public async Task<IReadOnlyList<Almacen>> GetAllAsync()
+        {
+            return await context.Almacenes
+                .Include(a => a.Sucursal)
+                .OrderBy(a => a.Name)
+                .ToListAsync();
+        }
         public async Task<Almacen?> GetByIdAsync(int id)
         {
-            return await _context.Almacenes.FindAsync(id);
+            return await context.Almacenes
+                .Include(a => a.Sucursal)
+                .FirstOrDefaultAsync(a => a.Id == id);
+        }
+        public async Task<bool> UpdateAsync(Almacen almacen)
+        {
+            context.Almacenes.Update(almacen);
+            await context.SaveChangesAsync();
+            return true;
+        }
+        public async Task<bool> HasInventariosAsync(int almacenId)
+        {
+            return await context.Inventarios
+                .AnyAsync(i => i.AlmacenId == almacenId);
         }
 
-        public async Task SaveAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task Update(Almacen Almacen)
-        {
-            _context.Almacenes.Update(Almacen);
-        }
     }
 }
