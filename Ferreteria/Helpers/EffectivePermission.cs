@@ -1,4 +1,5 @@
 ﻿using Ferreteria.Models.Segurudad;
+using Ferreteria.Models;
 
 namespace Ferreteria.Helpers
 {

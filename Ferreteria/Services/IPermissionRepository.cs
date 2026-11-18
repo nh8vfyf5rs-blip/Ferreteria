@@ -1,4 +1,5 @@
 ﻿using Ferreteria.DTOS;
+using Ferreteria.Models;
 using Ferreteria.Models.Segurudad;
 
 namespace Ferreteria.Services
