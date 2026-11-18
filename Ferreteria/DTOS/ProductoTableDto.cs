@@ -10,5 +10,6 @@
         public decimal? PrecioVenta { get; set; }
         public string CategoriaNombre { get; set; }=string.Empty;
         public string MarcaNombre { get; set; }  = string.Empty;
+
     }
 }

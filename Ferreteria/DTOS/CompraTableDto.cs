@@ -22,3 +22,4 @@ namespace Ferreteria.DTOS
         public string SucursalNombre { get; set; } = string.Empty;
     }
 }
+//

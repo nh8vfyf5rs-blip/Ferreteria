@@ -1,6 +1,6 @@
 ﻿using Ferreteria.Models.Segurudad;
 
-namespace Ferreteria.Models
+namespace Ferreteria.Models.Segurudad
 {
     public class RolPermiso
     {

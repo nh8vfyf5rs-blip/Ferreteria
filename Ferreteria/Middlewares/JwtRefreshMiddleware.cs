@@ -36,7 +36,7 @@ namespace Ferreteria.Middlewares
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(_jwtSettings.key)
+                        Encoding.UTF8.GetBytes(_jwtSettings.Secret)
                     ),
 
                     ValidateIssuer = true,
