@@ -1,8 +1,10 @@
-﻿namespace Ferreteria.DTOS
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Ferreteria.DTOS
 {
     public class UpdateMetodoPagoDto
     {
-        public string Nombre { get; set; }=string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
+        [Required]
+        public string Name { get; set; } = string.Empty;
     }
 }

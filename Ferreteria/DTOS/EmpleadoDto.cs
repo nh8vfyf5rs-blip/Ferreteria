@@ -13,5 +13,7 @@ namespace Ferreteria.DTOS
         public string Direccion { get; set; } = string.Empty;
         public DateTime FechaContratacion { get; set; } = DateTime.Now;
         public decimal Salario { get; set; }
+        public int CargoId { get; set; }
+        public int SucursalId { get; set; }
     }
 }

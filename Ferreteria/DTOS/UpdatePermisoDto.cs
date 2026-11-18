@@ -1,13 +1,17 @@
-﻿namespace Ferreteria.DTOS
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Ferreteria.DTOS
 {
     public class UpdatePermisoDto
     {
-        public int UserId { get; set; }
-        public string UserName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public int RoleId { get; set; }
-        public List<string> EffectivePermission { get; set; } = [];
-        public List<UserPermisoOverrideDto> DirectPermiso { get; set; } = [];
-        public string RolName { get; internal set; }
+        [Required(ErrorMessage = "El nombre es requerido")]
+        [MaxLength(150)]
+        [RegularExpression(
+            @"^[a-z][a-z0-9._]*$",
+            ErrorMessage = "Use el formato recurso accion: ")]
+        public string Name { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Description { get; set; }
     }
 }

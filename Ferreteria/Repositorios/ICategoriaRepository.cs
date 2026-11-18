@@ -1,4 +1,5 @@
-﻿using Ferreteria.Models;
+﻿using Ferreteria.DTOS;
+using Ferreteria.Models;
 
 namespace Ferreteria.Repositorios
 {
@@ -9,6 +10,6 @@ namespace Ferreteria.Repositorios
         Task<Categoria?> CreateAsync(Categoria categoria);
         Task<bool> UpdateAsync(Categoria categoria);
         Task<bool> DeleteAsync(int id);
-        Task<bool> HasProductosAsync(int categoriaId);
+        Task<bool> HasProductosAsync(int id);
     }
 }

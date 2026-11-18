@@ -44,6 +44,12 @@ namespace Ferreteria.Repositorios
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
+        public async Task<bool> HasComprasAsync(int empleadoId)
+        {
+            return await context.Compras
+                .AnyAsync(c => c.EmpleadoId == empleadoId);
+        }
+
         public async Task<bool> UpdateAsync(Empleado empleado)
         {
             context.Empleados.Update(empleado);

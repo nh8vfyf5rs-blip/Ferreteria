@@ -17,40 +17,38 @@ namespace Ferreteria.Repositorios
         public async Task<bool> DeleteAsync(int id)
         {
             var categoria = await context.Categorias.FindAsync(id);
-            if (categoria == null) return false;
+
+            if (categoria == null)
+                return false;
 
             context.Categorias.Remove(categoria);
             await context.SaveChangesAsync();
 
             return true;
         }
+        public async Task<bool> HasProductosAsync(int id)
+        {
+            return await context.Productos.AnyAsync(p => p.CategoriaId == id);
+        }
 
         public async Task<IReadOnlyList<Categoria>> GetAllAsync()
         {
             return await context.Categorias
-                .AsNoTracking()
                 .OrderBy(c => c.Name)
                 .ToListAsync();
         }
 
         public async Task<Categoria?> GetByIdAsync(int id)
         {
-            return await context.Categorias
-                .FirstOrDefaultAsync(c => c.Id == id);
+            return await context.Categorias.FindAsync(id);
         }
 
         public async Task<bool> UpdateAsync(Categoria categoria)
         {
             context.Categorias.Update(categoria);
             await context.SaveChangesAsync();
+
             return true;
         }
-        public async Task<bool> HasProductosAsync(int categoriaId)
-        {
-            return await context.Productos
-                .AnyAsync(p => p.CategoriaId == categoriaId);
-        }
-
-
     }
 }

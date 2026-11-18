@@ -30,6 +30,7 @@ namespace Ferreteria.Repositorios
             return await context.Inventarios
                 .AsNoTracking()
                 .Include(i => i.Almacen)
+                    .ThenInclude(a => a.Sucursal)
                 .Include(i => i.Producto)
                 .Include(i => i.DetalleInventarios)
                 .OrderBy(i => i.Id)
@@ -40,10 +41,10 @@ namespace Ferreteria.Repositorios
         {
             return await context.Inventarios
                 .Include(i => i.Almacen)
+                    .ThenInclude(a => a.Sucursal)
                 .Include(i => i.Producto)
                 .Include(i => i.DetalleInventarios)
                 .FirstOrDefaultAsync(i => i.Id == id);
-                
         }
 
         public async Task<bool> UpdateAsync(Inventario inventario)

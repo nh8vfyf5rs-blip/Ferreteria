@@ -9,5 +9,6 @@ namespace Ferreteria.Repositorios
         Task<Empleado?> CreateAsync(Empleado empleado);
         Task<bool> UpdateAsync(Empleado empleado);
         Task<bool> DeleteAsync(int id);
+        Task<bool> HasComprasAsync(int empleadoId);
     }
 }

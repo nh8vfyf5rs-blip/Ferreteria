@@ -7,5 +7,6 @@ namespace Ferreteria.DTOS
         [Required(ErrorMessage = "El nombre del rol es requerido")]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
+        public List<int> PermisoId { get; set; } = [];
     }
 }
