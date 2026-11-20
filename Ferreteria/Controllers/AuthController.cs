@@ -15,6 +15,12 @@ namespace Ferreteria.Controllers
             return View();
         }
 
+        [HttpGet]
+        public IActionResult Register()
+        {
+            return View();
+        }
+
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto dto)
         {

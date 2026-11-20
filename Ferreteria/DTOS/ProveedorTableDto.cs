@@ -1,6 +1,4 @@
-﻿using Ferreteria.Models;
-
-namespace Ferreteria.DTOS
+﻿namespace Ferreteria.DTOS
 {
     public class ProveedorTableDto
     {

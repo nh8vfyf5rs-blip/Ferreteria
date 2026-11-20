@@ -1,108 +1,108 @@
-﻿<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Ferretería</title>
+﻿@model IReadOnlyList<string>
+@{
+    bool Has(string p) => Model.Any(x => string.Equals(x, p, StringComparison.OrdinalIgnoreCase));
+    bool HasAny(params string[] perms) => perms.Any(Has);
+}
 
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Ferreteria.styles.css" asp-append-version="true" />
-</head>
+<li class="nav-item">
+    <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">
+        <i class="fa-solid fa-gauge me-1"></i> Dashboard
+    </a>
+</li>
 
-<body>
-    <div class="app-container">
-        <div class="app-container"> 
-  <!-- Menú lateral -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <div class="brand-icon">🔨</div>
-                <div>
-                    <h4>Ferretería</h4>
-                    <small>Sistema de gestión</small>
-                </div>
-            </div>
-
-            <div class="sidebar-menu">
-                <p class="menu-title">MENÚ PRINCIPAL</p>
-
-                <a class="menu-link active"
-                   asp-controller="Home" asp-action="Index">
-                    <span>▦</span> Dashboard
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>📦</span> Productos
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>👥</span> Clientes
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>🛒</span> Ventas
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>🧾</span> Compras
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>🏬</span> Inventario
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>📊</span> Reportes
-                </a>
-
-                <p class="menu-title menu-separator">CONFIGURACIÓN</p>
-
-                <a class="menu-link" href="#">
-                    <span>⚙</span> Configuración
-                </a>
-            </div>
-
-            <div class="sidebar-footer">
-                <span>●</span> Sistema Ferretería
-            </div>
-        </aside>
-
-        <!-- Contenido principal -->
-        <div class="main-container">
-
-            <header class="topbar">
-                <div>
-                    <h5>@ViewData["Title"]</h5>
-                    <small>Panel de administración</small>
-                </div>
-
-                <div class="topbar-user">
-                    <span class="notification-icon">🔔</span>
-                    <div class="user-avatar">A</div>
-                    <div>
-                        <strong>Administrador</strong>
-                        <small>Usuario del sistema</small>
-                    </div>
-                </div>
-            </header>
-
-            <main class="main-content">
-                @RenderBody()
-            </main>
-
-            <footer class="app-footer">
-                Ferretería - Tu aliado en cada proyecto.
-                <span>© 2026</span>
-            </footer>
-
-        </div>
-    </div>
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
-</html>
-
+@if (HasAny("producto.ver", "producto.crear", "producto.actualizar", "producto.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Producto" asp-action="Index">
+            <i class="fa-solid fa-box me-1"></i> Productos
+        </a>
+    </li>
+}
+@if (HasAny("categoria.ver", "categoria.crear", "categoria.actualizar", "categoria.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Categoria" asp-action="Index">
+            <i class="fa-solid fa-tag me-1"></i> Categorías
+        </a>
+    </li>
+}
+@if (HasAny("proveedor.ver", "proveedor.crear", "proveedor.actualizar", "proveedor.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Proveedor" asp-action="Index">
+            <i class="fa-solid fa-truck me-1"></i> Proveedores
+        </a>
+    </li>
+}
+@if (HasAny("cliente.ver", "cliente.crear", "cliente.actualizar", "cliente.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Cliente" asp-action="Index">
+            <i class="fa-solid fa-users me-1"></i> Clientes
+        </a>
+    </li>
+}
+@if (HasAny("venta.ver", "venta.crear", "venta.actualizar", "venta.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Venta" asp-action="Index">
+            <i class="fa-solid fa-cart-shopping me-1"></i> Ventas
+        </a>
+    </li>
+}
+@if (HasAny("compra.ver", "compra.crear", "compra.actualizar", "compra.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Compra" asp-action="Index">
+            <i class="fa-solid fa-bag-shopping me-1"></i> Compras
+        </a>
+    </li>
+}
+@if (HasAny("inventario.ver", "inventario.crear", "inventario.actualizar", "inventario.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Inventario" asp-action="Index">
+            <i class="fa-solid fa-boxes-stacked me-1"></i> Inventario
+        </a>
+    </li>
+}
+@if (HasAny("almacen.ver", "almacen.crear", "almacen.actualizar", "almacen.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Almacen" asp-action="Index">
+            <i class="fa-solid fa-warehouse me-1"></i> Almacenes
+        </a>
+    </li>
+}
+@if (HasAny("sucursal.ver", "sucursal.crear", "sucursal.actualizar", "sucursal.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Sucursal" asp-action="Index">
+            <i class="fa-solid fa-store me-1"></i> Sucursales
+        </a>
+    </li>
+}
+@if (HasAny("metodopago.ver", "metodopago.crear", "metodopago.actualizar", "metodopago.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="MetodoPago" asp-action="Index">
+            <i class="fa-solid fa-credit-card me-1"></i> Métodos de Pago
+        </a>
+    </li>
+}
+@if (HasAny("usuario.ver", "usuario.asignar", "usuario.cambiar_rol"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Admin" asp-action="Users">
+            <i class="fa-solid fa-user-gear me-1"></i> Usuarios
+        </a>
+    </li>
+}
+@if (HasAny("admin.panel", "rol.ver", "permiso.ver"))
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-area="" asp-controller="Admin" asp-action="Index">
+            <i class="fa-solid fa-shield-halved me-1"></i> Panel Administrativo
+        </a>
+    </li>
+}

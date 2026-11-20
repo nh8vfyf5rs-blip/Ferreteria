@@ -1,0 +1,111 @@
+﻿@using Ferreteria.Extensions
+@{
+    ViewData["Title"] = "Clientes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Clientes</h1>
+        <p class="text-muted mb-0">Gestiona los clientes de Fierro Nic con DataTable</p>
+    </div>
+    @if (User.HasPermission("cliente.crear"))
+    {
+        <button type="button" class="btn btn-primary btn-sm" id="btnNuevoCliente">
+            <i class="fa-solid fa-plus me-1"></i> Nuevo Cliente
+        </button>
+    }
+</div>
+
+<div class="card admin-card">
+    <div class="card-body">
+        <table id="clienteTable" class="table table-striped table-hover w-100">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Cédula</th>
+                    <th>Teléfono</th>
+                    <th>Correo</th>
+                    <th>Dirección</th>
+                    <th>Fecha Registro</th>
+                    <th>Total Ventas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@if (User.HasPermission("cliente.crear") || User.HasPermission("cliente.actualizar"))
+{
+    <div class="modal fade" id="clienteModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clienteModalTitle">Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="clienteForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="Id" name="Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="Name">Nombre</label>
+                                <input type="text" id="Name" name="Name" class="form-control" maxlength="100" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="Apellido">Apellido</label>
+                                <input type="text" id="Apellido" name="Apellido" class="form-control" maxlength="100" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Cedula">Cédula</label>
+                                <input type="text" id="Cedula" name="Cedula" class="form-control" maxlength="30" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Telefono">Teléfono</label>
+                                <input type="text" id="Telefono" name="Telefono" class="form-control" maxlength="30" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Correo">Correo</label>
+                                <input type="email" id="Correo" name="Correo" class="form-control" maxlength="120" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="Direccion">Dirección</label>
+                                <input type="text" id="Direccion" name="Direccion" class="form-control" maxlength="200" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarCliente">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/just-validate@4.3.0/dist/just-validate.production.min.js"></script>
+    <script>
+        window.clientesConfig = {
+            canUpdate: @User.HasPermission("cliente.actualizar").ToString().ToLower(),
+            canDelete: @User.HasPermission("cliente.borrar").ToString().ToLower()
+        };
+    </script>
+    <script src="~/js/cliente.js" asp-append-version="true"></script>
+}

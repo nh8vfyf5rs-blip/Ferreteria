@@ -5,7 +5,7 @@
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public ICollection<Usuario> Usuarios { get; set; } = [];
-        public ICollection<RolPermiso> RolPermisos { get; set; } = [];
+        public ICollection<RolPermiso> RolPermiso { get; set; } = [];
 
     }
 }

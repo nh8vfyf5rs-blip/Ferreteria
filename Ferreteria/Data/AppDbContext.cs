@@ -21,7 +21,7 @@ namespace Ferreteria.Data
             public DbSet<Sucursal> Sucursales { get; set; }
             public DbSet<Empleado> Empleados { get; set; }
             public DbSet<Cargo> Cargos { get; set; }
-            public DbSet<MetodoPago> MetododoPagos { get; set; }
+            public DbSet<MetodoPago> MetodoPagos { get; set; }
             public DbSet<Almacen> Almacenes { get; set; }
             public DbSet<Inventario> Inventarios { get; set; }
             public DbSet<MovimientoInventario> MovimientoInventarios { get; set; }
@@ -42,7 +42,7 @@ namespace Ferreteria.Data
 
                 modelBuilder.Entity<RolPermiso>()
                     .HasOne(rp => rp.Rol)
-                    .WithMany(r => r.RolPermisos)
+                    .WithMany(r => r.RolPermiso)
                     .HasForeignKey(rp => rp.RolId)
                     .OnDelete(DeleteBehavior.Cascade);
 

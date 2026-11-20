@@ -1,4 +1,5 @@
-﻿using Ferreteria.Models;
+﻿using Ferreteria.DTOS;
+using Ferreteria.Models;
 
 namespace Ferreteria.Repositorios
 {
@@ -9,5 +10,6 @@ namespace Ferreteria.Repositorios
         Task<Venta?> CreateAsync(Venta venta);
         Task<bool> UpdateAsync(Venta venta);
         Task<bool> DeleteAsync(int id);
+        Task<DataTableResponseDto<VentaTableDto>> GetPagedAsync(DataTablesRequestDto request);
     }
 }

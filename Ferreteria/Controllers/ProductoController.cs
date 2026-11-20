@@ -126,14 +126,11 @@ namespace Ferreteria.Controllers
             var marcas = await _marcaService.GetAllAsync();
             var almacenes = await _almacenService.GetAllAsync();
 
-            ViewBag.Categorias = new SelectList(
-                categorias, "Id", "Nombre");
+            ViewBag.Categorias = new SelectList(categorias, "Id", "Name");
 
-            ViewBag.Marcas = new SelectList(
-                marcas, "Id", "Name");
+            ViewBag.Marcas = new SelectList(marcas, "Id", "Name");
 
-            ViewBag.Almacenes = new SelectList(
-                almacenes, "Id", "Name");
+            ViewBag.Almacenes = new SelectList(almacenes, "Id", "Name");
         }
     }
 }

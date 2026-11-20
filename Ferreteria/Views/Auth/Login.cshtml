@@ -1,0 +1,183 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FERRO NIC — Sistema de Gestión</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link href="~/css/login.css" rel="stylesheet" asp-append-version="true" />
+</head>
+<body>
+    <main class="auth-page">
+        <header class="brand-header">
+            <h1 class="brand-title">FERRO NIC</h1>
+            <p class="brand-subtitle">Sistema De Gestión</p>
+
+            <div class="brand-logo" aria-hidden="true">
+                <div class="logo-badge">
+                    <i class="fa-solid fa-gear logo-gear"></i>
+                    <i class="fa-solid fa-wrench logo-wrench"></i>
+                </div>
+            </div>
+        </header>
+
+        <div class="form-container">
+            <!-- ---------------- LOGIN ---------------- -->
+            <div id="loginForm" class="form active">
+                <h2 class="form-heading">Iniciar Sesión</h2>
+
+                <form id="signupForm" novalidate>
+                    <div class="field-group">
+                        <label for="email" class="field-label">Usuario o Correo Electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-user input-icon-left" aria-hidden="true"></i>
+                            <input type="text" id="email" placeholder="ejemplo@correo.com" autocomplete="username" required />
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="password" class="field-label">Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon-left" aria-hidden="true"></i>
+                            <input type="password" id="password" placeholder="••••••••••" autocomplete="current-password" required />
+                            <button type="button" class="toggle-password-btn" data-target="password" aria-label="Mostrar u ocultar contraseña">
+                                <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="remember-forgot">
+                        <label class="remember-label" for="rememberMe">
+                            <input type="checkbox" id="rememberMe" />
+                            <span>Recordar Sesion</span>
+                        </label>
+
+                        <a href="#" class="forgot-link" data-form="forgotForm">¿Olvidaste mi contraseña?</a>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Ingresar</button>
+
+                    <p class="auth-switch-text">
+                        ¿No tienes cuenta? <a href="#" class="switch-form" data-form="registerForm">Registrarse</a>
+                    </p>
+                </form>
+            </div>
+
+            <!-- ---------------- REGISTRO ---------------- -->
+            <div id="registerForm" class="form">
+                <h2 class="form-heading">Crear Cuenta</h2>
+
+                <form id="registerFormElement" novalidate>
+                    <div class="field-group">
+                        <label for="UserName" class="field-label">Nombre de usuario</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-user input-icon-left" aria-hidden="true"></i>
+                            <input type="text" id="UserName" placeholder="Tu usuario" required />
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="registerEmail" class="field-label">Correo electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon-left" aria-hidden="true"></i>
+                            <input type="email" id="registerEmail" placeholder="ejemplo@correo.com" required />
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="registerPassword" class="field-label">Crear contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon-left" aria-hidden="true"></i>
+                            <input type="password" id="registerPassword" placeholder="••••••••••" required />
+                            <button type="button" class="toggle-password-btn" data-target="registerPassword" aria-label="Mostrar u ocultar contraseña">
+                                <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="confirmPassword" class="field-label">Confirmar contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon-left" aria-hidden="true"></i>
+                            <input type="password" id="confirmPassword" placeholder="••••••••••" required />
+                            <button type="button" class="toggle-password-btn" data-target="confirmPassword" aria-label="Mostrar u ocultar contraseña">
+                                <i class="fa-regular fa-eye-slash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Crear cuenta</button>
+
+                    <p class="auth-switch-text">
+                        ¿Ya tienes una cuenta? <a href="#" class="switch-form" data-form="loginForm">Inicia sesión</a>
+                    </p>
+                </form>
+            </div>
+
+            <!-- ---------------- RECUPERAR CONTRASEÑA ---------------- -->
+            <div id="forgotForm" class="form">
+                <h2 class="form-heading">Resetear Contraseña</h2>
+
+                <form id="resetPasswordForm" novalidate>
+                    <div class="field-group">
+                        <label for="resetEmail" class="field-label">Correo electrónico</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon-left" aria-hidden="true"></i>
+                            <input type="email" id="resetEmail" placeholder="ejemplo@correo.com" required />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Mandar enlace de reseteo</button>
+
+                    <p class="auth-switch-text">
+                        ¿Recuerdas tu contraseña? <a href="#" class="switch-form" data-form="loginForm">Inicia sesión</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <footer class="auth-footer">
+            @@ 2026 FERRO NIC. Todos los derechos reservados.
+        </footer>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/just-validate@4.2.0/dist/just-validate.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    @if (TempData["Success"] != null)
+    {
+        <script>
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: '@TempData["Success"]',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+        </script>
+    }
+    else if (TempData["Error"] != null)
+    {
+        <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '@TempData["Error"]',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 4000,
+                    showConfirmButton: false
+                });
+        </script>
+    }
+
+    <script src="~/js/login.js" asp-append-version="true"></script>
+</body>
+</html>

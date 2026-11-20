@@ -1,6 +1,4 @@
-﻿using Ferreteria.Models;
-
-namespace Ferreteria.DTOS
+﻿namespace Ferreteria.DTOS
 {
     public class DetalleInventarioDTO
     {
@@ -8,7 +6,7 @@ namespace Ferreteria.DTOS
         public int SucursalId { get; set; }
         public int StockAnterior { get; set; }
         public int StockNuevo { get; set; }
-        public DateTime FechaRegistro { get; set; } 
+        public DateTime FechaRegistro { get; set; }
         public string Observacion { get; set; } = string.Empty;
         public int InventarioId { get; set; }
     }

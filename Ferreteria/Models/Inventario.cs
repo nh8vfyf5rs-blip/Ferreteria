@@ -9,6 +9,8 @@
         public virtual Almacen Almacen { get; set; } = null!;
         public int ProductoId { get; set; }
         public virtual Producto Producto { get; set; }=null!;
+        public int SucursalId { get; set; }
+        public virtual Sucursal Sucursal { get; set; }= null!;
         public virtual ICollection<DetalleInventario> DetalleInventarios { get; set; } = [];
 
     }

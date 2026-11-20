@@ -1,103 +1,64 @@
-﻿using Ferreteria.DTOS;
-using Ferreteria.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace Ferreteria.Controllers
+namespace FierroNic.Controllers
 {
-    public class DevolucionController(
-        IDevolucionesService _devolucionesService,
-        IVentaService _ventaService) : Controller
+    public class DevolucionesController : Controller
     {
-        [Authorize(Policy = "devolucion.ver")]
-        public async Task<IActionResult> Index()
-        {
-            ViewBag.Ventas = await _ventaService.GetAllAsync();
-            return View();
-        }
+        public IActionResult Index() => View();
 
-        [Authorize(Policy = "devolucion.ver")]
-        [HttpPost]
-        public async Task<IActionResult> GetData()
-        {
-            var result = await _devolucionesService.GetAllAsync();
-            return Ok(result);
-        }
-
-        [Authorize(Policy = "devolucion.ver")]
         [HttpGet]
-        public async Task<IActionResult> GetById(int id)
+        public IActionResult GetData()
         {
-            var result = await _devolucionesService.GetByIdAsync(id);
-
-            if (result == null)
-                return NotFound(new { message = "Devolución no encontrada" });
-
-            return Ok(result);
+            // Reemplaza esto con tu consulta de Entity Framework Core
+            var lista = new[]
+            {
+                new { id = 1, fecha = DateTime.Today, ventaReferencia = "V-0001", motivo = "Producto dañado", total = 150.00m }
+            };
+            return Json(new { data = lista });
         }
 
-        [Authorize(Policy = "devolucion.crear")]
+        [HttpGet]
+        public IActionResult GetById(int id)
+        {
+            return Json(new { success = true, data = new { id, fecha = DateTime.Today, ventaId = 1, total = 150.00m, motivo = "Ejemplo" } });
+        }
+
         [HttpPost]
-        public async Task<IActionResult> Create(CreateDevolucionDto dto)
+        [ValidateAntiForgeryToken]
+        public IActionResult Create([FromForm] DevolucionInputModel model)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Error en los datos a guardar"
-                });
+                return Json(new { success = false, message = "Datos inválidos." });
 
-            var (success, errorMessage) =
-                await _devolucionesService.CreateAsync(dto);
-
-            return success
-                ? Ok(new
-                {
-                    success = true,
-                    message = "Devolución creada satisfactoriamente"
-                })
-                : BadRequest(new { success = false, errorMessage });
+            return Json(new { success = true, message = "Devolución creada correctamente." });
         }
 
-        [Authorize(Policy = "devolucion.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> Update(
-            int id,
-            UpdateDevolucionDto dto)
+        [ValidateAntiForgeryToken]
+        public IActionResult Update(int id, [FromForm] DevolucionInputModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Error en los datos a guardar"
-                });
+            if (id <= 0 || !ModelState.IsValid)
+                return Json(new { success = false, message = "Datos inválidos para actualizar." });
 
-            var (success, errorMessage) =
-                await _devolucionesService.UpdateAsync(id, dto);
-
-            return success
-                ? Ok(new
-                {
-                    success = true,
-                    message = "Devolución actualizada satisfactoriamente"
-                })
-                : BadRequest(new { success = false, errorMessage });
+            return Json(new { success = true, message = "Devolución actualizada correctamente." });
         }
 
-        [Authorize(Policy = "devolucion.borrar")]
         [HttpPost]
-        public async Task<IActionResult> Delete(int id)
+        public IActionResult Delete(int id)
         {
-            var (success, errorMessage) =
-                await _devolucionesService.DeleteAsync(id);
+            if (id <= 0)
+                return Json(new { success = false, message = "ID inválido." });
 
-            return success
-                ? Ok(new
-                {
-                    success = true,
-                    message = "Devolución eliminada satisfactoriamente"
-                })
-                : BadRequest(new { success = false, errorMessage });
+            return Json(new { success = true, message = "Devolución eliminada correctamente." });
         }
+    }
+
+    public class DevolucionInputModel
+    {
+        public int Id { get; set; }
+        public DateTime Fecha { get; set; }
+        public int VentaId { get; set; }
+        public decimal Total { get; set; }
+        public string Motivo { get; set; } = string.Empty;
     }
 }

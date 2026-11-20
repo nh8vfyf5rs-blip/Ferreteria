@@ -1,0 +1,87 @@
+﻿@using Ferreteria.Extensions
+@{
+    ViewData["Title"] = "Almacenes";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Almacenes</h1>
+        <p class="text-muted mb-0">Gestiona los almacenes de Fierro Nic con DataTable</p>
+    </div>
+    @if (User.HasPermission("almacen.crear"))
+    {
+        <button type="button" class="btn btn-primary btn-sm" id="btnNuevoAlmacen">
+            <i class="fa-solid fa-plus me-1"></i> Nuevo Almacén
+        </button>
+    }
+</div>
+
+<div class="card admin-card">
+    <div class="card-body">
+        <table id="almacenTable" class="table table-striped table-hover w-100">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Sucursal</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@if (User.HasPermission("almacen.crear") || User.HasPermission("almacen.actualizar"))
+{
+    <div class="modal fade" id="almacenModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="almacenModalTitle">Almacén</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="almacenForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="Id" name="Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="Name">Nombre</label>
+                                <input type="text" id="Name" name="Name" class="form-control" maxlength="100" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="SucursalId">Sucursal</label>
+                                <select id="SucursalId" name="SucursalId" class="form-select">
+                                    <option value="">-- Seleccione --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarAlmacen">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/just-validate@4.3.0/dist/just-validate.production.min.js"></script>
+    <script>
+        window.almacenesConfig = {
+            canUpdate: @User.HasPermission("almacen.actualizar").ToString().ToLower(),
+            canDelete: @User.HasPermission("almacen.borrar").ToString().ToLower()
+        };
+    </script>
+    <script src="~/js/almacen.js" asp-append-version="true"></script>
+}

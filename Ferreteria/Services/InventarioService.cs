@@ -4,10 +4,11 @@ using Ferreteria.Repositorios;
 
 namespace Ferreteria.Services
 {
-    public class InventarioService(IInventarioRepository repo,
+    public class InventarioService(
+        IInventarioRepository repo,
         IAlmacenRepository repoAlmacen,
         IProductoRepository repoProducto,
-        IMovimientoInventarioRepository repoMovimiento) : IInventarioService
+        IDetalleInventarioRepository repoDetalle) : IInventarioService
     {
         public async Task<IReadOnlyList<InventarioTableDto>> GetAllAsync()
         {
@@ -16,12 +17,12 @@ namespace Ferreteria.Services
             return inventarios.Select(i => new InventarioTableDto
             {
                 Id = i.Id,
-                SucursalId = i.Almacen.SucursalId,
-                SucursalNombre = i.Almacen.Sucursal.Name,
+                SucursalId = i.Almacen?.SucursalId ?? 0,
+                SucursalNombre = i.Almacen?.Sucursal?.Name ?? string.Empty,
                 AlmacenId = i.AlmacenId,
-                AlmacenNombre = i.Almacen.Name,
+                AlmacenNombre = i.Almacen?.Name ?? string.Empty,
                 ProductoId = i.ProductoId,
-                ProductoNombre = i.Producto.Nombre,
+                ProductoNombre = i.Producto?.Nombre ?? string.Empty,
                 Stock = i.Stock,
                 FechaActualizacion = i.FechaActualizacion
             }).ToList();
@@ -37,12 +38,12 @@ namespace Ferreteria.Services
             return new InventarioDto
             {
                 Id = inventario.Id,
-                SucursalId = inventario.Almacen.SucursalId,
+                SucursalId = inventario.Almacen?.SucursalId ?? 0,
                 AlmacenId = inventario.AlmacenId,
                 ProductoId = inventario.ProductoId,
                 Stock = inventario.Stock,
                 FechaActualizacion = inventario.FechaActualizacion,
-                detalleInventarioDTOs = inventario.DetalleInventarios
+                DetalleInventarioDTO = inventario.DetalleInventarios
                     .Select(d => new DetalleInventarioDTO
                     {
                         Id = d.Id,
@@ -56,9 +57,11 @@ namespace Ferreteria.Services
             };
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> CreateAsync(
-            CreateInventarioDTO dto)
+        public async Task<(bool Success, string? ErrorMessage)> CreateAsync(CreateInventarioDTO dto)
         {
+            if (dto.Stock < 0)
+                return (false, "El stock inicial no puede ser negativo.");
+
             var almacen = await repoAlmacen.GetByIdAsync(dto.AlmacenId);
 
             if (almacen == null)
@@ -76,42 +79,40 @@ namespace Ferreteria.Services
                 return (false, "Ya existe un inventario para este producto en el almacén seleccionado.");
             }
 
+            var fechaActual = DateTime.Now;
+
             var inventario = new Inventario
             {
                 AlmacenId = dto.AlmacenId,
                 ProductoId = dto.ProductoId,
                 Stock = dto.Stock,
-                FechaActualizacion = DateTime.Now
+                FechaActualizacion = fechaActual,
+                DetalleInventarios = new List<DetalleInventario>
+                {
+                    new()
+                    {
+                        SucursalId = almacen.SucursalId,
+                        StockAnterior = 0,
+                        StockNuevo = dto.Stock,
+                        FechaRegistro = fechaActual,
+                        Observacion = "Registro inicial de inventario"
+                    }
+                }
             };
 
-            inventario.DetalleInventarios.Add(new DetalleInventario
-            {
-                SucursalId = almacen.SucursalId,
-                StockAnterior = 0,
-                StockNuevo = dto.Stock,
-                FechaRegistro = DateTime.Now,
-                Observacion = "Registro inicial de inventario"
-            });
+            var creado = await repo.CreateAsync(inventario);
 
-            await repo.CreateAsync(inventario);
-
-            if (dto.Stock > 0)
-            {
-                await repoMovimiento.CreateAsync(new MovimientoInventario
-                {
-                    TipoMovimiento = "Entrada",
-                    Cantidad = dto.Stock,
-                    Observacion = "Registro inicial de inventario",
-                    InventarioId = inventario.Id
-                });
-            }
+            if (creado == null)
+                return (false, "No fue posible crear el inventario.");
 
             return (true, null);
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(
-            int id, UpdateInventarioDTO dto)
+        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(int id, UpdateInventarioDTO dto)
         {
+            if (dto.Stock < 0)
+                return (false, "El stock no puede ser negativo.");
+
             var inventario = await repo.GetByIdAsync(id);
 
             if (inventario == null)
@@ -137,7 +138,6 @@ namespace Ferreteria.Services
 
             int stockAnterior = inventario.Stock;
             int stockNuevo = dto.Stock;
-            int diferencia = Math.Abs(stockNuevo - stockAnterior);
 
             bool cambioUbicacion =
                 inventario.AlmacenId != dto.AlmacenId ||
@@ -147,6 +147,7 @@ namespace Ferreteria.Services
             inventario.ProductoId = dto.ProductoId;
             inventario.Stock = stockNuevo;
             inventario.FechaActualizacion = DateTime.Now;
+            inventario.DetalleInventarios ??= new List<DetalleInventario>();
 
             if (stockAnterior != stockNuevo || cambioUbicacion)
             {
@@ -162,20 +163,10 @@ namespace Ferreteria.Services
                 });
             }
 
-            await repo.UpdateAsync(inventario);
+            var actualizado = await repo.UpdateAsync(inventario);
 
-            if (diferencia > 0)
-            {
-                await repoMovimiento.CreateAsync(new MovimientoInventario
-                {
-                    TipoMovimiento = stockNuevo > stockAnterior
-                        ? "Entrada"
-                        : "Salida",
-                    Cantidad = diferencia,
-                    Observacion = "Ajuste de inventario",
-                    InventarioId = inventario.Id
-                });
-            }
+            if (!actualizado)
+                return (false, "No fue posible actualizar el inventario.");
 
             return (true, null);
         }
@@ -193,14 +184,16 @@ namespace Ferreteria.Services
             if (inventario.DetalleInventarios.Any())
                 return (false, "No se puede eliminar el inventario porque tiene un historial de movimientos de stock.");
 
-            var movimientos = await repoMovimiento.GetAllAsyc();
+            var detalles = await repoDetalle.GetAllAsync();
 
-            if (movimientos.Any(m => m.InventarioId == id))
-                return (false, "No se puede eliminar el inventario porque tiene movimientos asociados.");
+            if (detalles.Any(d => d.InventarioId == id))
+                return (false, "No se puede eliminar el inventario porque tiene detalles de inventario asociados.");
 
-            await repo.DeleteAsync(id);
+            var eliminado = await repo.DeleteAsync(id);
 
-            return (true, null);
+            return eliminado
+                ? (true, null)
+                : (false, "No fue posible eliminar el inventario.");
         }
     }
 }

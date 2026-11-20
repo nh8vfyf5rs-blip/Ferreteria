@@ -11,10 +11,9 @@ namespace Ferreteria.Services
         IAlmacenRepository repoAlmacen,
         IProductoRepository repoProducto,
         IInventarioRepository repoInventario,
-        IMovimientoInventarioRepository repoMovimiento) : IVentaService
+        IDetalleInventarioRepository repoDetalle) : IVentaService
     {
-        public async Task<DataTableResponseDto<VentaTableDto>> GetPagedAsync(
-           DataTablesRequestDto request)
+        public async Task<DataTableResponseDto<VentaTableDto>> GetPagedAsync(DataTablesRequestDto request)
         {
             return await repo.GetPagedAsync(request);
         }
@@ -29,13 +28,21 @@ namespace Ferreteria.Services
                 FechaVenta = v.FechaVenta,
                 Total = v.Total,
                 ClienteId = v.ClienteId,
-                Cliente = v.Cliente.Name,
-                CantidadProductos = v.DetalleVentas.Count
+                ClienteNombre = v.Cliente?.Name ?? string.Empty,
+                EmpleadoNombre = v.Empleado != null
+                    ? $"{v.Empleado.Nombres} {v.Empleado.Apellidos}".Trim()
+                    : string.Empty,
+                AlmacenNombre = v.Almacen?.Name ?? string.Empty,
+                SucursalNombre = v.Almacen?.Sucursal?.Name ?? string.Empty,
+                CantidadProductos = v.DetalleVentas?.Count ?? 0
             }).ToList();
         }
 
         public async Task<SaveVentaDto?> GetByIdAsync(int id)
         {
+            if (id <= 0)
+                return null;
+
             var venta = await repo.GetByIdAsync(id);
 
             if (venta == null)
@@ -63,6 +70,9 @@ namespace Ferreteria.Services
         public async Task<(bool Success, string? ErrorMessage)> CreateAsync(
             SaveVentaDto dto)
         {
+            if (dto == null)
+                return (false, "Los datos de la venta son obligatorios.");
+
             var error = await ValidateReferencesAsync(dto);
 
             if (error != null)
@@ -111,8 +121,11 @@ namespace Ferreteria.Services
         public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(
             SaveVentaDto dto)
         {
-            if (!dto.Id.HasValue)
-                return (false, "Debe indicar el identificador de la venta.");
+            if (dto == null)
+                return (false, "Los datos de la venta son obligatorios.");
+
+            if (!dto.Id.HasValue || dto.Id.Value <= 0)
+                return (false, "Debe indicar un identificador de venta válido.");
 
             var venta = await repo.GetByIdAsync(dto.Id.Value);
 
@@ -168,6 +181,9 @@ namespace Ferreteria.Services
 
         public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(int id)
         {
+            if (id <= 0)
+                return (false, "El identificador de la venta no es válido.");
+
             var venta = await repo.GetByIdAsync(id);
 
             if (venta == null)
@@ -243,7 +259,6 @@ namespace Ferreteria.Services
                 cambios[key] += cantidad;
             }
 
-            // Al actualizar o eliminar, se devuelve el stock anterior.
             if (ventaActual != null)
             {
                 foreach (var detalle in ventaActual.DetalleVentas)
@@ -255,7 +270,6 @@ namespace Ferreteria.Services
                 }
             }
 
-            // Al crear o actualizar, se descuenta el nuevo stock.
             if (dto != null)
             {
                 foreach (var detalle in dto.DetalleVentaDtos)
@@ -291,7 +305,7 @@ namespace Ferreteria.Services
                 {
                     return $"Stock insuficiente para el producto " +
                            $"{cambio.Key.ProductoId}. Disponible: " +
-                           $"{inventario.Stock + Math.Max(cambio.Value, 0)}.";
+                           $"{inventario.Stock}.";
                 }
             }
 
@@ -312,7 +326,13 @@ namespace Ferreteria.Services
                     i.AlmacenId == cambio.Key.AlmacenId &&
                     i.ProductoId == cambio.Key.ProductoId);
 
-                inventario.Stock += cambio.Value;
+                var almacen = await repoAlmacen.GetByIdAsync(cambio.Key.AlmacenId);
+                int sucursalId = almacen?.SucursalId ?? inventario.Almacen?.SucursalId ?? 0;
+
+                int stockAnterior = inventario.Stock;
+                int stockNuevo = stockAnterior + cambio.Value;
+
+                inventario.Stock = stockNuevo;
                 inventario.FechaActualizacion = DateTime.Now;
 
                 var actualizado = await repoInventario.UpdateAsync(inventario);
@@ -320,21 +340,24 @@ namespace Ferreteria.Services
                 if (!actualizado)
                     return $"No fue posible actualizar el inventario del producto {inventario.ProductoId}.";
 
-                var movimiento = new MovimientoInventario
+                string accion = cambio.Value < 0
+                    ? $"Salida por venta #{ventaId} (cantidad: {Math.Abs(cambio.Value)})."
+                    : $"Ajuste por actualización o eliminación de venta #{ventaId} (cantidad: {cambio.Value}).";
+
+                var detalle = new DetalleInventario
                 {
-                    TipoMovimiento = cambio.Value < 0 ? "Salida" : "Entrada",
-                    Cantidad = Math.Abs(cambio.Value),
-                    Fecha = DateTime.Now,
-                    Observacion = cambio.Value < 0
-                        ? $"Salida por venta #{ventaId}."
-                        : $"Entrada por actualización o eliminación de venta #{ventaId}.",
-                    InventarioId = inventario.Id
+                    InventarioId = inventario.Id,
+                    SucursalId = sucursalId,
+                    StockAnterior = stockAnterior,
+                    StockNuevo = stockNuevo,
+                    FechaRegistro = DateTime.Now,
+                    Observacion = accion
                 };
 
-                var registrado = await repoMovimiento.CreateAsync(movimiento);
+                var registrado = await repoDetalle.CreateAsync(detalle);
 
                 if (registrado == null)
-                    return $"No fue posible registrar el movimiento del producto {inventario.ProductoId}.";
+                    return $"No fue posible registrar el detalle de inventario del producto {inventario.ProductoId}.";
             }
 
             return null;

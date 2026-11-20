@@ -1,4 +1,5 @@
 ﻿using Ferreteria.Data;
+using Ferreteria.DTOS;
 using Ferreteria.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,11 +25,14 @@ namespace Ferreteria.Repositorios
             return true;
         }
 
-        public async  Task<IReadOnlyList<Venta>> GetAllAsync()
+        public async Task<IReadOnlyList<Venta>> GetAllAsync()
         {
             return await context.Ventas
                 .AsNoTracking()
                 .Include(v => v.Cliente)
+                .Include(v => v.Empleado)
+                .Include(v => v.Almacen)
+                    .ThenInclude(a => a.Sucursal)
                 .Include(v => v.DetalleVentas)
                     .ThenInclude(d => d.Producto)
                 .Include(v => v.DetallePagos)
@@ -41,6 +45,9 @@ namespace Ferreteria.Repositorios
         {
             return await context.Ventas
                 .Include(v => v.Cliente)
+                .Include(v => v.Empleado)
+                .Include(v => v.Almacen)
+                    .ThenInclude(a => a.Sucursal)
                 .Include(v => v.DetalleVentas)
                     .ThenInclude(d => d.Producto)
                 .Include(v => v.DetallePagos)
@@ -48,7 +55,12 @@ namespace Ferreteria.Repositorios
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
-        public async  Task<bool> UpdateAsync(Venta venta)
+        public Task<DataTableResponseDto<VentaTableDto>> GetPagedAsync(DataTablesRequestDto request)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> UpdateAsync(Venta venta)
         {
             context.Ventas.Update(venta);
             await context.SaveChangesAsync();
