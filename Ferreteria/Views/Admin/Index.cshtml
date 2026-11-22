@@ -22,18 +22,17 @@
             </div>
         </div>
     }
-    @if (User.HasPermission("permiso.ver"))
-    {
-        <div class="col-md-4">
-            <div class="card admin-card h-100">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fa-solid fa-key me-2 text-success"></i>Permisos</h5>
-                    <p class="card-text text-muted">Crear y administrar permisos como <code>producto.crear</code>.</p>
-                    <a asp-action="Permissions" class="btn btn-success btn-sm">Gestionar permisos</a>
-                </div>
+
+    <div class="col-md-4">
+        <div class="card admin-card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa-solid fa-key me-2 text-success"></i>Permisos</h5>
+                <p class="card-text text-muted">Crear y administrar permisos como <code>producto.crear</code>.</p>
+                <a asp-action="Permissions" class="btn btn-success btn-sm">Gestionar permisos</a>
             </div>
         </div>
-    }
+    </div>
+
     @if (User.HasPermission("usuario.ver"))
     {
         <div class="col-md-4">

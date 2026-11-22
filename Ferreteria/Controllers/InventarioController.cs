@@ -2,6 +2,7 @@
 using Ferreteria.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Ferreteria.Controllers
 {
@@ -13,8 +14,11 @@ namespace Ferreteria.Controllers
         [Authorize(Policy = "inventario.ver")]
         public async Task<IActionResult> Index()
         {
-            ViewBag.Almacenes = await _almacenService.GetAllAsync();
-            ViewBag.Productos = await _productoService.GetAllAsync();
+            var almacenes = await _almacenService.GetAllAsync();
+            var productos = await _productoService.GetAllAsync();
+
+            ViewBag.Almacenes = new SelectList(almacenes, "Id", "Name");
+            ViewBag.Productos = new SelectList(productos, "Id", "Nombre");
 
             return View();
         }
@@ -41,7 +45,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "inventario.crear")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateInventarioDTO dto)
+        public async Task<IActionResult> Create([FromBody] CreateInventarioDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new
@@ -66,7 +70,7 @@ namespace Ferreteria.Controllers
         [HttpPost]
         public async Task<IActionResult> Update(
             int id,
-            UpdateInventarioDTO dto)
+            [FromBody] UpdateInventarioDTO dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new

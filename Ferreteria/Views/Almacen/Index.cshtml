@@ -1,6 +1,7 @@
 ﻿@using Ferreteria.Extensions
 @{
     ViewData["Title"] = "Almacenes";
+    var sucursales = ViewBag.Sucursales as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -11,7 +12,7 @@
     @if (User.HasPermission("almacen.crear"))
     {
         <button type="button" class="btn btn-primary btn-sm" id="btnNuevoAlmacen">
-            <i class="fa-solid fa-plus me-1"></i> Nuevo Almacén
+            <i class="fa-solid fa-plus me-1"></i> Nuevo Almacen
         </button>
     }
 </div>
@@ -48,13 +49,19 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label" for="Name">Nombre</label>
-                                <input type="text" id="Name" name="Name" class="form-control" maxlength="100" />
+                                <input type="text" id="Name" name="Name" class="form-control solo-letras" maxlength="100" />
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label" for="SucursalId">Sucursal</label>
                                 <select id="SucursalId" name="SucursalId" class="form-select">
                                     <option value="">-- Seleccione --</option>
+                                    @foreach (var suc in sucursales)
+                                    {
+                                        var sucId = suc.Id;
+                                        var sucNombre = suc.Name ?? suc.Nombre ?? $"Sucursal #{sucId}";
+                                        <option value="@sucId">@sucNombre</option>
+                                    }
                                 </select>
                             </div>
                         </div>

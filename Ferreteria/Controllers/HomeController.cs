@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Ferreteria.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ferreteria.Controllers
@@ -13,6 +14,13 @@ namespace Ferreteria.Controllers
 
         public IActionResult Privacy()
         {
+            return View();
+        }
+
+        [AllowAnonymous]
+        public IActionResult NotFoundPage()
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
             return View();
         }
 

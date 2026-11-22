@@ -35,7 +35,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "metodopago.crear")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateMetodoPagoDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateMetodoPagoDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new
@@ -57,7 +57,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "metodopago.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> Update(int id, UpdateMetodoPagoDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMetodoPagoDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new

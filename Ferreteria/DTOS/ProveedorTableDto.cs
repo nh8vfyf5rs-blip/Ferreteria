@@ -8,6 +8,6 @@
         public string Correo { get; set; } = string.Empty;
         public string Direccion { get; set; } = string.Empty;
         public DateTime FechaRegistro { get; set; }
-        public int TotalCompas { get; set; }
+        public int TotalCompras { get; set; }
     }
 }

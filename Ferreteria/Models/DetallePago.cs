@@ -4,7 +4,8 @@
     {
         public int Id { get; set; }
         public decimal Monto { get; set; }
-        public DateTime FechaPago { get; set; }= DateTime.Now;
+        public DateTime FechaPago { get; set; } = DateTime.Now;
+        public string? NumeroComprobante { get; set; }
         public int MetodoPagoId { get; set; }
         public virtual MetodoPago MetodoPago { get; set; } = null!;
         public int VentaId { get; set; }

@@ -43,7 +43,7 @@ namespace Ferreteria.Controllers
         [HttpGet]
         public IActionResult Login()
         {
-            var token = Request.Cookies["Acceso_Token"];
+            var token = Request.Cookies["access_token"];
 
             if (!string.IsNullOrEmpty(token))
                 return RedirectToAction("Index", "Home");
@@ -81,12 +81,12 @@ namespace Ferreteria.Controllers
             };
 
             Response.Cookies.Append(
-                "Acceso_Token",
+                "access_token",
                 result.AccessToken,
                 cookieOptions);
 
             Response.Cookies.Append(
-                "RefreshToken",
+                "refresh_token",
                 result.RefreshToken,
                 cookieOptions);
 
@@ -101,8 +101,8 @@ namespace Ferreteria.Controllers
         [HttpPost]
         public IActionResult Logout()
         {
-            Response.Cookies.Delete("Acceso_Token");
-            Response.Cookies.Delete("RefreshToken");
+            Response.Cookies.Delete("access_token");
+            Response.Cookies.Delete("refresh_token");
 
             return Json(new
             {
@@ -139,9 +139,14 @@ namespace Ferreteria.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ForgotPassword(ForgoPasswordDto dto)
+        public async Task<IActionResult> ForgotPassword(
+            [FromBody] ForgoPasswordDto? bodyDto,
+            [FromForm] ForgoPasswordDto? formDto)
         {
-            if (dto == null || string.IsNullOrWhiteSpace(dto.Email))
+            var dto = bodyDto ?? formDto;
+            var email = dto?.Email?.Trim();
+
+            if (string.IsNullOrWhiteSpace(email))
             {
                 return BadRequest(new
                 {
@@ -150,10 +155,16 @@ namespace Ferreteria.Controllers
                 });
             }
 
-            var sent = await _authService.SendResetPasswordLinkAsync(dto.Email);
+            var sent = await _authService.SendResetPasswordLinkAsync(email);
 
             if (sent)
-                return Ok(new { success = true });
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "Se ha enviado el enlace de restablecimiento a tu correo."
+                });
+            }
 
             return NotFound(new
             {
@@ -177,19 +188,40 @@ namespace Ferreteria.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto dto)
+        public async Task<IActionResult> ResetPassword(
+            [FromBody] ResetPasswordRequestDto? bodyDto,
+            [FromForm] ResetPasswordRequestDto? formDto)
         {
-            if (!ModelState.IsValid)
-                return View(dto);
+            var dto = bodyDto ?? formDto;
+
+            if (dto == null ||
+                string.IsNullOrWhiteSpace(dto.Email) ||
+                string.IsNullOrWhiteSpace(dto.Token) ||
+                string.IsNullOrWhiteSpace(dto.NewPassword))
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    errorMessage = "Complete todos los campos requeridos."
+                });
+            }
 
             var success = await _authService.ResetPasswordAsync(dto);
 
             if (success)
-                return Ok(new { success = true });
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = "Tu contraseña ha sido restablecida correctamente."
+                });
+            }
 
-            ModelState.AddModelError("", "Token inválido o expirado.");
-
-            return View(dto);
+            return BadRequest(new
+            {
+                success = false,
+                errorMessage = "Token inválido o expirado."
+            });
         }
 
         [Authorize]
@@ -217,8 +249,8 @@ namespace Ferreteria.Controllers
             {
                 TempData["Success"] = "Contraseña cambiada exitosamente.";
 
-                Response.Cookies.Delete("Acceso_Token");
-                Response.Cookies.Delete("RefreshToken");
+                Response.Cookies.Delete("access_token");
+                Response.Cookies.Delete("refresh_token");
 
                 return RedirectToAction("Login");
             }
@@ -231,7 +263,7 @@ namespace Ferreteria.Controllers
         [HttpPost]
         public async Task<IActionResult> RefreshToken()
         {
-            var refreshToken = Request.Cookies["RefreshToken"];
+            var refreshToken = Request.Cookies["refresh_token"];
 
             if (string.IsNullOrEmpty(refreshToken))
                 return Unauthorized();
@@ -258,12 +290,12 @@ namespace Ferreteria.Controllers
             };
 
             Response.Cookies.Append(
-                "Acceso_Token",
+                "access_token",
                 newTokens.AccessToken,
                 accessOptions);
 
             Response.Cookies.Append(
-                "RefreshToken",
+                "refresh_token",
                 newTokens.RefreshToken,
                 refreshOptions);
 

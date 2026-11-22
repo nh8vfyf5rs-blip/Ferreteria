@@ -1,6 +1,8 @@
-﻿using Ferreteria.DTOS;
+﻿using Ferreteria.Data;
+using Ferreteria.DTOS;
 using Ferreteria.Models;
 using Ferreteria.Repositorios;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Services
 {
@@ -11,7 +13,8 @@ namespace Ferreteria.Services
         IAlmacenRepository repoAlmacen,
         IProductoRepository repoProducto,
         IInventarioRepository repoInventario,
-        IDetalleInventarioRepository repoDetalle) : ICompraService
+        IDetalleInventarioRepository repoDetalle,
+        AppDbContext context) : ICompraService
     {
         public async Task<IReadOnlyList<CompraTableDto>> GetAllAsync()
         {
@@ -25,7 +28,9 @@ namespace Ferreteria.Services
                 ProveedorId = c.ProveedorId,
                 ProveedorNombre = c.Proveedor?.NombreEmpresa ?? string.Empty,
                 EmpleadoId = c.EmpleadoId,
-                EmpleadoNombre = $"{c.Empleado?.Nombres} {c.Empleado?.Apellidos}".Trim()
+                EmpleadoNombre = $"{c.Empleado?.Nombres} {c.Empleado?.Apellidos}".Trim(),
+                AlmacenNombre = c.Almacen?.Name ?? string.Empty,
+                SucursalNombre = c.Almacen?.Sucursal?.Name ?? string.Empty
             }).ToList();
         }
 
@@ -62,9 +67,15 @@ namespace Ferreteria.Services
             if (await repoEmpleado.GetByIdAsync(dto.EmpleadoId) == null)
                 return (false, "El empleado seleccionado no existe");
 
-            var almacen = await repoAlmacen.GetByIdAsync(dto.AlmacenId);
+            var almacen = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == dto.AlmacenId);
+
             if (almacen == null)
                 return (false, "El almacén seleccionado no existe");
+
+            if (almacen.SucursalId <= 0)
+                return (false, "El almacén seleccionado no tiene una sucursal válida asignada");
 
             if (dto.DetalleCompraDtos == null || dto.DetalleCompraDtos.Count == 0)
                 return (false, "Debe agregar al menos un producto a la compra");
@@ -121,6 +132,7 @@ namespace Ferreteria.Services
 
                     inventario = await repoInventario.CreateAsync(new Inventario
                     {
+                        SucursalId = almacen.SucursalId,
                         ProductoId = detalle.ProductoId,
                         AlmacenId = compraCreada.AlmacenId,
                         Stock = stockNuevo,
@@ -136,6 +148,9 @@ namespace Ferreteria.Services
                 {
                     stockAnterior = inventario.Stock;
                     stockNuevo = stockAnterior + detalle.CantidadRecibida;
+
+                    if (inventario.SucursalId <= 0)
+                        inventario.SucursalId = almacen.SucursalId;
 
                     inventario.Stock = stockNuevo;
                     inventario.FechaActualizacion = DateTime.Now;
@@ -171,11 +186,19 @@ namespace Ferreteria.Services
             if (await repoEmpleado.GetByIdAsync(dto.EmpleadoId) == null)
                 return (false, "El empleado seleccionado no existe");
 
-            var almacenAnterior = await repoAlmacen.GetByIdAsync(compra.AlmacenId);
-            var almacenNuevo = await repoAlmacen.GetByIdAsync(dto.AlmacenId);
+            var almacenAnterior = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == compra.AlmacenId);
+
+            var almacenNuevo = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == dto.AlmacenId);
 
             if (almacenNuevo == null)
                 return (false, "El almacén seleccionado no existe");
+
+            if (almacenNuevo.SucursalId <= 0)
+                return (false, "El almacén seleccionado no tiene una sucursal válida asignada");
 
             if (compra.AlmacenId != dto.AlmacenId)
             {
@@ -242,6 +265,7 @@ namespace Ferreteria.Services
 
                         inventarioNuevo = await repoInventario.CreateAsync(new Inventario
                         {
+                            SucursalId = almacenNuevo.SucursalId,
                             ProductoId = detalle.ProductoId,
                             AlmacenId = dto.AlmacenId,
                             Stock = stockNuevoDestino,
@@ -257,6 +281,9 @@ namespace Ferreteria.Services
                     {
                         stockAnteriorDestino = inventarioNuevo.Stock;
                         stockNuevoDestino = stockAnteriorDestino + detalle.Cantidad;
+
+                        if (inventarioNuevo.SucursalId <= 0)
+                            inventarioNuevo.SucursalId = almacenNuevo.SucursalId;
 
                         inventarioNuevo.Stock = stockNuevoDestino;
                         inventarioNuevo.FechaActualizacion = DateTime.Now;
@@ -292,7 +319,9 @@ namespace Ferreteria.Services
             if (compra == null)
                 return (false, "Compra no encontrada");
 
-            var almacen = await repoAlmacen.GetByIdAsync(compra.AlmacenId);
+            var almacen = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == compra.AlmacenId);
 
             var detallesAgrupados = compra.DetalleCompras
                 .GroupBy(d => d.ProductoId)

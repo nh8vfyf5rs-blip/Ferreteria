@@ -17,7 +17,7 @@ namespace Ferreteria.Services
             return inventarios.Select(i => new InventarioTableDto
             {
                 Id = i.Id,
-                SucursalId = i.Almacen?.SucursalId ?? 0,
+                SucursalId = i.Almacen?.SucursalId ?? i.SucursalId,
                 SucursalNombre = i.Almacen?.Sucursal?.Name ?? string.Empty,
                 AlmacenId = i.AlmacenId,
                 AlmacenNombre = i.Almacen?.Name ?? string.Empty,
@@ -38,7 +38,7 @@ namespace Ferreteria.Services
             return new InventarioDto
             {
                 Id = inventario.Id,
-                SucursalId = inventario.Almacen?.SucursalId ?? 0,
+                SucursalId = inventario.Almacen?.SucursalId ?? inventario.SucursalId,
                 AlmacenId = inventario.AlmacenId,
                 ProductoId = inventario.ProductoId,
                 Stock = inventario.Stock,
@@ -67,6 +67,9 @@ namespace Ferreteria.Services
             if (almacen == null)
                 return (false, "El almacén seleccionado no existe.");
 
+            if (almacen.SucursalId <= 0)
+                return (false, "El almacén seleccionado no tiene una sucursal válida asignada.");
+
             if (await repoProducto.GetByIdAsync(dto.ProductoId) == null)
                 return (false, "El producto seleccionado no existe.");
 
@@ -83,6 +86,7 @@ namespace Ferreteria.Services
 
             var inventario = new Inventario
             {
+                SucursalId = almacen.SucursalId,
                 AlmacenId = dto.AlmacenId,
                 ProductoId = dto.ProductoId,
                 Stock = dto.Stock,
@@ -123,6 +127,9 @@ namespace Ferreteria.Services
             if (almacen == null)
                 return (false, "El almacén seleccionado no existe.");
 
+            if (almacen.SucursalId <= 0)
+                return (false, "El almacén seleccionado no tiene una sucursal válida asignada.");
+
             if (await repoProducto.GetByIdAsync(dto.ProductoId) == null)
                 return (false, "El producto seleccionado no existe.");
 
@@ -143,6 +150,7 @@ namespace Ferreteria.Services
                 inventario.AlmacenId != dto.AlmacenId ||
                 inventario.ProductoId != dto.ProductoId;
 
+            inventario.SucursalId = almacen.SucursalId;
             inventario.AlmacenId = dto.AlmacenId;
             inventario.ProductoId = dto.ProductoId;
             inventario.Stock = stockNuevo;

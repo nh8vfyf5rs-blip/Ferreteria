@@ -24,10 +24,6 @@ namespace Ferreteria.Controllers
                 : User.GetPermission();
         }
 
-        // =========================================================
-        // PANEL DE ADMINISTRACIÓN
-        // =========================================================
-
         [Authorize(Policy = "admin.panel")]
         public IActionResult Index()
         {
@@ -36,7 +32,7 @@ namespace Ferreteria.Controllers
         }
 
         // =========================================================
-        // ADMINISTRACIÓN DE PERMISOS
+        // PERMISOS
         // =========================================================
 
         [Authorize(Policy = "permiso.ver")]
@@ -48,7 +44,6 @@ namespace Ferreteria.Controllers
         }
 
         [Authorize(Policy = "permiso.ver")]
-        [HttpGet]
         public async Task<IActionResult> Permissions()
         {
             var effective = await GetEffectivePermissionAsync();
@@ -61,7 +56,7 @@ namespace Ferreteria.Controllers
                 string.Equals(p, "permiso.borrar", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(p, "permiso.crear", StringComparison.OrdinalIgnoreCase));
 
-            return View();
+            return View("Permission");
         }
 
         [Authorize(Policy = "permiso.ver")]
@@ -80,7 +75,7 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> CreatePermission([FromBody] SavePermisoDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new { success = false, message = "Revise los datos del formulario" });
+                return BadRequest(new { message = "Revise los datos del formulario" });
 
             var (success, _, errorMessage) = await _rolPermisoService.CreatePermissionAsync(dto);
             if (!success)
@@ -94,7 +89,7 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> UpdatePermission([FromBody] SavePermisoDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new { success = false, message = "Revise los datos del formulario" });
+                return BadRequest(new { message = "Revise los datos del formulario" });
 
             var (success, errorMessage) = await _rolPermisoService.UpdatePermissionAsync(dto);
             if (!success)
@@ -115,11 +110,10 @@ namespace Ferreteria.Controllers
         }
 
         // =========================================================
-        // ADMINISTRACIÓN DE ROLES
+        // ROLES
         // =========================================================
 
         [Authorize(Policy = "rol.ver")]
-        [HttpGet]
         public async Task<IActionResult> Roles()
         {
             var roles = await _rolPermisoService.GetAllRolesAsync();
@@ -151,17 +145,16 @@ namespace Ferreteria.Controllers
         }
 
         [Authorize(Policy = "rol.asignar")]
-        [HttpGet]
         public async Task<IActionResult> RoleDetails(int id)
         {
             var role = await _rolPermisoService.GetRoleByIdAsync(id);
             if (role == null)
                 return NotFound();
 
-            var allPermissions = await _rolPermisoService.GetAllPermissionsAsync();
-            ViewBag.AllPermission = allPermissions;
+            var allPermission = await _rolPermisoService.GetAllPermissionsAsync();
+            ViewBag.AllPermission = allPermission;
 
-            return View(role);
+            return View("RoleDetail", role);
         }
 
         [Authorize(Policy = "rol.asignar")]
@@ -169,7 +162,7 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> AssignPermissionToRole(int roleId, int permissionId)
         {
             var (success, errorMessage) = await _rolPermisoService.AssignPermissionToRoleAsync(roleId, permissionId);
-            return Json(new { success, message = success ? "Permiso asignado correctamente" : errorMessage });
+            return Json(new { success, message = success ? "Permiso asignado" : errorMessage });
         }
 
         [Authorize(Policy = "rol.asignar")]
@@ -177,23 +170,21 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> RemovePermissionFromRole(int roleId, int permissionId)
         {
             var (success, errorMessage) = await _rolPermisoService.RemovePermissionFromRoleAsync(roleId, permissionId);
-            return Json(new { success, message = success ? "Permiso removido correctamente" : errorMessage });
+            return Json(new { success, message = success ? "Permiso removido" : errorMessage });
         }
 
         // =========================================================
-        // ADMINISTRACIÓN DE USUARIOS
+        // USUARIOS
         // =========================================================
 
         [Authorize(Policy = "usuario.ver")]
-        [HttpGet]
         public async Task<IActionResult> Users()
         {
             var users = await _rolPermisoService.GetAllUsersAsync();
-            return View(users);
+            return View("User", users);
         }
 
         [Authorize(Policy = "usuario.asignar")]
-        [HttpGet]
         public async Task<IActionResult> UserPermissions(int id)
         {
             var user = await _rolPermisoService.GetUserPermissionsAsync(id);
@@ -207,7 +198,7 @@ namespace Ferreteria.Controllers
             ViewBag.AllRoles = allRoles;
             ViewBag.CanChangeRole = User.HasPermission("usuario.cambiar_rol");
 
-            return View(user);
+            return View("UserPermission", user);
         }
 
         [Authorize(Policy = "usuario.asignar")]
@@ -237,7 +228,7 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> UpdateRole(int userId, [FromBody] UpdateUserRoleDto dto)
         {
             var (success, errorMessage) = await _rolPermisoService.UpdateUserRoleAsync(userId, dto.RolId);
-            return Json(new { success, message = success ? "Rol actualizado correctamente" : errorMessage });
+            return Json(new { success, message = success ? "Rol actualizado" : errorMessage });
         }
     }
 }

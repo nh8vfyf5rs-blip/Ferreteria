@@ -13,11 +13,6 @@ namespace Ferreteria.Services
         IInventarioRepository repoInventario,
         IDetalleInventarioRepository repoDetalle) : IVentaService
     {
-        public async Task<DataTableResponseDto<VentaTableDto>> GetPagedAsync(DataTablesRequestDto request)
-        {
-            return await repo.GetPagedAsync(request);
-        }
-
         public async Task<IReadOnlyList<VentaTableDto>> GetAllAsync()
         {
             var ventas = await repo.GetAllAsync();
@@ -28,257 +23,332 @@ namespace Ferreteria.Services
                 FechaVenta = v.FechaVenta,
                 Total = v.Total,
                 ClienteId = v.ClienteId,
-                ClienteNombre = v.Cliente?.Name ?? string.Empty,
-                EmpleadoNombre = v.Empleado != null
-                    ? $"{v.Empleado.Nombres} {v.Empleado.Apellidos}".Trim()
+                ClienteNombre = v.Cliente != null ? (v.Cliente.Name ?? string.Empty) : string.Empty,
+                EmpleadoNombre = v.Empleado != null ? (v.Empleado.Nombres ?? string.Empty) : string.Empty,
+                AlmacenNombre = v.Almacen != null ? (v.Almacen.Name ?? string.Empty) : string.Empty,
+                SucursalNombre = v.Almacen != null && v.Almacen.Sucursal != null
+                    ? (v.Almacen.Sucursal.Name ?? string.Empty)
                     : string.Empty,
-                AlmacenNombre = v.Almacen?.Name ?? string.Empty,
-                SucursalNombre = v.Almacen?.Sucursal?.Name ?? string.Empty,
-                CantidadProductos = v.DetalleVentas?.Count ?? 0
+                CantidadProductos = v.DetalleVentas != null ? v.DetalleVentas.Sum(dv => dv.Cantidad) : 0
             }).ToList();
+        }
+
+        public async Task<DataTableResponseDto<VentaTableDto>> GetPagedAsync(DataTablesRequestDto request)
+        {
+            return await repo.GetPagedAsync(request);
         }
 
         public async Task<SaveVentaDto?> GetByIdAsync(int id)
         {
-            if (id <= 0)
-                return null;
+            var v = await repo.GetByIdAsync(id);
+            if (v == null) return null;
 
-            var venta = await repo.GetByIdAsync(id);
-
-            if (venta == null)
-                return null;
+            var primerPago = v.DetallePagos?.FirstOrDefault();
 
             return new SaveVentaDto
             {
-                Id = venta.Id,
-                FechaVenta = venta.FechaVenta,
-                Total = venta.Total,
-                ClienteId = venta.ClienteId,
-                EmpleadoId = venta.EmpleadoId,
-                AlmacenId = venta.AlmacenId,
-                DetalleVentaDtos = venta.DetalleVentas.Select(d =>
-                    new DetalleVentaDto
-                    {
-                        ProductoId = d.ProductoId,
-                        Cantidad = d.Cantidad,
-                        PrecioUnitario = d.PrecioUnitario,
-                        Subtotal = d.Subtotal
-                    }).ToList()
+                Id = v.Id,
+                FechaVenta = v.FechaVenta,
+                Total = v.Total,
+                ClienteId = v.ClienteId,
+                EmpleadoId = v.EmpleadoId,
+                AlmacenId = v.AlmacenId,
+                MetodoPagoId = primerPago?.MetodoPagoId ?? 0,
+                NumeroComprobante = primerPago?.NumeroComprobante,
+                DetalleVentaDtos = v.DetalleVentas.Select(d => new DetalleVentaDto
+                {
+                    ProductoId = d.ProductoId,
+                    Cantidad = d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario,
+                    Subtotal = d.Subtotal
+                }).ToList()
             };
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> CreateAsync(
-            SaveVentaDto dto)
+        public async Task<(bool Success, string? ErrorMessage)> CreateAsync(SaveVentaDto dto)
         {
             if (dto == null)
                 return (false, "Los datos de la venta son obligatorios.");
 
-            var error = await ValidateReferencesAsync(dto);
-
-            if (error != null)
-                return (false, error);
+            var (refError, sucursalPorAlmacen, nombresProductos, nombresAlmacenes) = await ValidateAndGetContextAsync(dto);
+            if (refError != null)
+                return (false, refError);
 
             var inventarios = await repoInventario.GetAllAsync();
             var cambios = BuildStockChanges(null, dto);
 
-            error = ValidateStockChanges(cambios, inventarios);
+            var stockError = ValidateStockChanges(cambios, inventarios, nombresProductos, nombresAlmacenes);
+            if (stockError != null)
+                return (false, stockError);
 
-            if (error != null)
-                return (false, error);
+            var fechaVenta = dto.FechaVenta == default ? DateTime.Now : dto.FechaVenta;
+            var comprobante = string.IsNullOrWhiteSpace(dto.NumeroComprobante)
+                ? null
+                : dto.NumeroComprobante.Trim();
 
             var venta = new Venta
             {
-                FechaVenta = dto.FechaVenta,
+                FechaVenta = fechaVenta,
                 ClienteId = dto.ClienteId,
                 EmpleadoId = dto.EmpleadoId,
                 AlmacenId = dto.AlmacenId,
-                DetalleVentas = dto.DetalleVentaDtos.Select(d =>
-                    new DetalleVenta
-                    {
-                        ProductoId = d.ProductoId,
-                        Cantidad = d.Cantidad,
-                        PrecioUnitario = d.PrecioUnitario,
-                        Subtotal = d.Cantidad * d.PrecioUnitario
-                    }).ToList()
+                DetalleVentas = dto.DetalleVentaDtos.Select(d => new DetalleVenta
+                {
+                    ProductoId = d.ProductoId,
+                    Cantidad = d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario,
+                    Subtotal = d.Cantidad * d.PrecioUnitario
+                }).ToList()
             };
 
             venta.Total = venta.DetalleVentas.Sum(d => d.Subtotal);
 
-            var creada = await repo.CreateAsync(venta);
+            if (dto.MetodoPagoId > 0)
+            {
+                venta.DetallePagos.Add(new DetallePago
+                {
+                    Venta = venta,
+                    MetodoPagoId = dto.MetodoPagoId,
+                    Monto = venta.Total,
+                    FechaPago = fechaVenta,
+                    NumeroComprobante = comprobante
+                });
+            }
 
+            var creada = await repo.CreateAsync(venta);
             if (creada == null)
                 return (false, "No fue posible registrar la venta.");
 
-            error = await ApplyStockChangesAsync(
-                cambios, inventarios, creada.Id);
-
-            if (error != null)
-                return (false, error);
+            var applyError = await ApplyStockChangesAsync(cambios, inventarios, sucursalPorAlmacen, nombresProductos, creada.Id);
+            if (applyError != null)
+                return (false, applyError);
 
             return (true, null);
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(
-            SaveVentaDto dto)
+        public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(SaveVentaDto dto)
         {
-            if (dto == null)
-                return (false, "Los datos de la venta son obligatorios.");
-
             if (!dto.Id.HasValue || dto.Id.Value <= 0)
-                return (false, "Debe indicar un identificador de venta válido.");
+                return (false, "Id de venta no válido.");
 
             var venta = await repo.GetByIdAsync(dto.Id.Value);
-
             if (venta == null)
-                return (false, "La venta no existe.");
+                return (false, "Venta no encontrada.");
 
-            var error = await ValidateReferencesAsync(dto);
-
-            if (error != null)
-                return (false, error);
+            var (refError, sucursalPorAlmacen, nombresProductos, nombresAlmacenes) = await ValidateAndGetContextAsync(dto, venta);
+            if (refError != null)
+                return (false, refError);
 
             var inventarios = await repoInventario.GetAllAsync();
             var cambios = BuildStockChanges(venta, dto);
 
-            error = ValidateStockChanges(cambios, inventarios);
+            var stockError = ValidateStockChanges(cambios, inventarios, nombresProductos, nombresAlmacenes);
+            if (stockError != null)
+                return (false, stockError);
 
-            if (error != null)
-                return (false, error);
-
-            venta.FechaVenta = dto.FechaVenta;
+            venta.FechaVenta = dto.FechaVenta == default ? venta.FechaVenta : dto.FechaVenta;
             venta.ClienteId = dto.ClienteId;
             venta.EmpleadoId = dto.EmpleadoId;
             venta.AlmacenId = dto.AlmacenId;
 
-            venta.DetalleVentas.Clear();
+            var comprobante = string.IsNullOrWhiteSpace(dto.NumeroComprobante)
+                ? null
+                : dto.NumeroComprobante.Trim();
 
-            foreach (var detalle in dto.DetalleVentaDtos)
+            var nuevosDetalles = dto.DetalleVentaDtos.Select(d => new DetalleVenta
             {
-                venta.DetalleVentas.Add(new DetalleVenta
-                {
-                    ProductoId = detalle.ProductoId,
-                    Cantidad = detalle.Cantidad,
-                    PrecioUnitario = detalle.PrecioUnitario,
-                    Subtotal = detalle.Cantidad * detalle.PrecioUnitario
-                });
+                VentaId = venta.Id,
+                ProductoId = d.ProductoId,
+                Cantidad = d.Cantidad,
+                PrecioUnitario = d.PrecioUnitario,
+                Subtotal = d.Cantidad * d.PrecioUnitario
+            }).ToList();
+
+            venta.DetalleVentas.Clear();
+            foreach (var det in nuevosDetalles)
+            {
+                venta.DetalleVentas.Add(det);
             }
 
             venta.Total = venta.DetalleVentas.Sum(d => d.Subtotal);
 
-            var actualizado = await repo.UpdateAsync(venta);
+            if (dto.MetodoPagoId > 0)
+            {
+                var primerPago = venta.DetallePagos?.FirstOrDefault();
+                if (primerPago != null)
+                {
+                    primerPago.MetodoPagoId = dto.MetodoPagoId;
+                    primerPago.Monto = venta.Total;
+                    primerPago.FechaPago = venta.FechaVenta;
+                    primerPago.NumeroComprobante = comprobante;
+                }
+                else
+                {
+                    venta.DetallePagos!.Add(new DetallePago
+                    {
+                        Venta = venta,
+                        MetodoPagoId = dto.MetodoPagoId,
+                        Monto = venta.Total,
+                        FechaPago = venta.FechaVenta,
+                        NumeroComprobante = comprobante
+                    });
+                }
+            }
 
-            if (!actualizado)
+            var actualizada = await repo.UpdateAsync(venta);
+            if (!actualizada)
                 return (false, "No fue posible actualizar la venta.");
 
-            error = await ApplyStockChangesAsync(
-                cambios, inventarios, venta.Id);
-
-            if (error != null)
-                return (false, error);
+            var applyError = await ApplyStockChangesAsync(cambios, inventarios, sucursalPorAlmacen, nombresProductos, venta.Id);
+            if (applyError != null)
+                return (false, applyError);
 
             return (true, null);
         }
 
         public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(int id)
         {
-            if (id <= 0)
-                return (false, "El identificador de la venta no es válido.");
-
             var venta = await repo.GetByIdAsync(id);
-
             if (venta == null)
-                return (false, "La venta no existe.");
+                return (false, "Venta no encontrada.");
 
-            if (venta.DetallePagos.Any())
-                return (false, "No se puede eliminar una venta que tiene pagos registrados.");
+            var almacen = await repoAlmacen.GetByIdAsync(venta.AlmacenId);
+            int sucursalId = almacen?.SucursalId ?? 0;
+            var sucursalPorAlmacen = new Dictionary<int, int> { [venta.AlmacenId] = sucursalId };
+            var nombresAlmacenes = new Dictionary<int, string>
+            {
+                [venta.AlmacenId] = string.IsNullOrWhiteSpace(almacen?.Name) ? $"#{venta.AlmacenId}" : almacen.Name!
+            };
+            var nombresProductos = new Dictionary<int, string>();
 
             var inventarios = await repoInventario.GetAllAsync();
-            var cambios = BuildStockChanges(venta, null);
+            var cambios = new Dictionary<(int AlmacenId, int ProductoId), int>();
 
-            var error = ValidateStockChanges(cambios, inventarios);
+            foreach (var det in venta.DetalleVentas)
+            {
+                var producto = await repoProducto.GetByIdAsync(det.ProductoId);
+                nombresProductos[det.ProductoId] = string.IsNullOrWhiteSpace(producto?.Nombre)
+                    ? $"ID {det.ProductoId}"
+                    : $"{producto.Nombre} (ID {det.ProductoId})";
 
-            if (error != null)
-                return (false, error);
+                var key = (venta.AlmacenId, det.ProductoId);
+                cambios[key] = cambios.GetValueOrDefault(key) + det.Cantidad;
+            }
+
+            var stockError = ValidateStockChanges(cambios, inventarios, nombresProductos, nombresAlmacenes);
+            if (stockError != null)
+                return (false, stockError);
+
+            var applyError = await ApplyStockChangesAsync(cambios, inventarios, sucursalPorAlmacen, nombresProductos, venta.Id);
+            if (applyError != null)
+                return (false, applyError);
 
             var eliminada = await repo.DeleteAsync(id);
-
-            if (!eliminada)
-                return (false, "No fue posible eliminar la venta.");
-
-            error = await ApplyStockChangesAsync(
-                cambios, inventarios, id);
-
-            if (error != null)
-                return (false, error);
-
-            return (true, null);
+            return eliminada
+                ? (true, null)
+                : (false, "No fue posible eliminar la venta.");
         }
 
-        private async Task<string?> ValidateReferencesAsync(SaveVentaDto dto)
+        private async Task<(
+            string? Error,
+            Dictionary<int, int> SucursalPorAlmacen,
+            Dictionary<int, string> NombresProductos,
+            Dictionary<int, string> NombresAlmacenes
+        )> ValidateAndGetContextAsync(SaveVentaDto dto, Venta? ventaAnterior = null)
         {
+            var sucursales = new Dictionary<int, int>();
+            var nombresProductos = new Dictionary<int, string>();
+            var nombresAlmacenes = new Dictionary<int, string>();
+
             if (await repoCliente.GetByIdAsync(dto.ClienteId) == null)
-                return "El cliente seleccionado no existe.";
+                return ("El cliente seleccionado no existe.", sucursales, nombresProductos, nombresAlmacenes);
 
             if (await repoEmpleado.GetByIdAsync(dto.EmpleadoId) == null)
-                return "El empleado seleccionado no existe.";
+                return ("El empleado seleccionado no existe.", sucursales, nombresProductos, nombresAlmacenes);
 
-            if (await repoAlmacen.GetByIdAsync(dto.AlmacenId) == null)
-                return "El almacén seleccionado no existe.";
+            var almacen = await repoAlmacen.GetByIdAsync(dto.AlmacenId);
+            if (almacen == null)
+                return ("El almacén seleccionado no existe.", sucursales, nombresProductos, nombresAlmacenes);
 
-            if (dto.DetalleVentaDtos == null ||
-                dto.DetalleVentaDtos.Count == 0)
-                return "Debe agregar al menos un producto a la venta.";
+            if (almacen.SucursalId <= 0)
+                return ("El almacén seleccionado no tiene una sucursal válida asignada.", sucursales, nombresProductos, nombresAlmacenes);
 
-            foreach (var detalle in dto.DetalleVentaDtos)
+            sucursales[dto.AlmacenId] = almacen.SucursalId;
+            nombresAlmacenes[dto.AlmacenId] = string.IsNullOrWhiteSpace(almacen.Name)
+                ? $"#{dto.AlmacenId}"
+                : $"{almacen.Name} (#{dto.AlmacenId})";
+
+            if (ventaAnterior != null && ventaAnterior.AlmacenId != dto.AlmacenId)
             {
-                if (detalle.Cantidad <= 0)
-                    return "La cantidad de cada producto debe ser mayor que cero.";
-
-                if (detalle.PrecioUnitario <= 0)
-                    return "El precio unitario debe ser mayor que cero.";
-
-                if (await repoProducto.GetByIdAsync(detalle.ProductoId) == null)
-                    return $"El producto con identificador {detalle.ProductoId} no existe.";
+                var almacenAnterior = await repoAlmacen.GetByIdAsync(ventaAnterior.AlmacenId);
+                if (almacenAnterior != null)
+                {
+                    sucursales[ventaAnterior.AlmacenId] = almacenAnterior.SucursalId;
+                    nombresAlmacenes[ventaAnterior.AlmacenId] = string.IsNullOrWhiteSpace(almacenAnterior.Name)
+                        ? $"#{ventaAnterior.AlmacenId}"
+                        : $"{almacenAnterior.Name} (#{ventaAnterior.AlmacenId})";
+                }
             }
 
-            return null;
+            if (dto.DetalleVentaDtos == null || dto.DetalleVentaDtos.Count == 0)
+                return ("Debe agregar al menos un producto a la venta.", sucursales, nombresProductos, nombresAlmacenes);
+
+            foreach (var d in dto.DetalleVentaDtos)
+            {
+                if (d.ProductoId <= 0)
+                    return ("Debe seleccionar un producto válido.", sucursales, nombresProductos, nombresAlmacenes);
+
+                if (d.Cantidad <= 0)
+                    return ("La cantidad debe ser mayor a cero.", sucursales, nombresProductos, nombresAlmacenes);
+
+                if (d.PrecioUnitario <= 0)
+                    return ("El precio unitario debe ser mayor a cero.", sucursales, nombresProductos, nombresAlmacenes);
+
+                var producto = await repoProducto.GetByIdAsync(d.ProductoId);
+                if (producto == null)
+                    return ($"El producto con ID {d.ProductoId} no existe.", sucursales, nombresProductos, nombresAlmacenes);
+
+                nombresProductos[d.ProductoId] = string.IsNullOrWhiteSpace(producto.Nombre)
+                    ? $"ID {d.ProductoId}"
+                    : $"{producto.Nombre} (ID {d.ProductoId})";
+            }
+
+            if (ventaAnterior != null)
+            {
+                foreach (var detAnt in ventaAnterior.DetalleVentas)
+                {
+                    if (!nombresProductos.ContainsKey(detAnt.ProductoId))
+                    {
+                        var prodAnt = await repoProducto.GetByIdAsync(detAnt.ProductoId);
+                        nombresProductos[detAnt.ProductoId] = string.IsNullOrWhiteSpace(prodAnt?.Nombre)
+                            ? $"ID {detAnt.ProductoId}"
+                            : $"{prodAnt.Nombre} (ID {detAnt.ProductoId})";
+                    }
+                }
+            }
+
+            return (null, sucursales, nombresProductos, nombresAlmacenes);
         }
 
-        private static Dictionary<(int AlmacenId, int ProductoId), int>
-            BuildStockChanges(Venta? ventaActual, SaveVentaDto? dto)
+        private static Dictionary<(int AlmacenId, int ProductoId), int> BuildStockChanges(
+            Venta? ventaAnterior,
+            SaveVentaDto dtoNuevo)
         {
-            var cambios = new Dictionary<(int, int), int>();
+            var cambios = new Dictionary<(int AlmacenId, int ProductoId), int>();
 
-            void AddChange(int almacenId, int productoId, int cantidad)
+            if (ventaAnterior != null)
             {
-                var key = (almacenId, productoId);
-
-                if (!cambios.ContainsKey(key))
-                    cambios[key] = 0;
-
-                cambios[key] += cantidad;
-            }
-
-            if (ventaActual != null)
-            {
-                foreach (var detalle in ventaActual.DetalleVentas)
+                foreach (var det in ventaAnterior.DetalleVentas)
                 {
-                    AddChange(
-                        ventaActual.AlmacenId,
-                        detalle.ProductoId,
-                        detalle.Cantidad);
+                    var keyAnterior = (ventaAnterior.AlmacenId, det.ProductoId);
+                    cambios[keyAnterior] = cambios.GetValueOrDefault(keyAnterior) + det.Cantidad;
                 }
             }
 
-            if (dto != null)
+            foreach (var det in dtoNuevo.DetalleVentaDtos)
             {
-                foreach (var detalle in dto.DetalleVentaDtos)
-                {
-                    AddChange(
-                        dto.AlmacenId,
-                        detalle.ProductoId,
-                        -detalle.Cantidad);
-                }
+                var keyNueva = (dtoNuevo.AlmacenId, det.ProductoId);
+                cambios[keyNueva] = cambios.GetValueOrDefault(keyNueva) - det.Cantidad;
             }
 
             return cambios;
@@ -286,27 +356,32 @@ namespace Ferreteria.Services
 
         private static string? ValidateStockChanges(
             Dictionary<(int AlmacenId, int ProductoId), int> cambios,
-            IReadOnlyList<Inventario> inventarios)
+            IReadOnlyList<Inventario> inventarios,
+            Dictionary<int, string> nombresProductos,
+            Dictionary<int, string> nombresAlmacenes)
         {
             foreach (var cambio in cambios)
             {
+                if (cambio.Value == 0)
+                    continue;
+
                 var inventario = inventarios.FirstOrDefault(i =>
                     i.AlmacenId == cambio.Key.AlmacenId &&
                     i.ProductoId == cambio.Key.ProductoId);
 
+                string prodLabel = nombresProductos.TryGetValue(cambio.Key.ProductoId, out var pName)
+                    ? pName
+                    : $"ID {cambio.Key.ProductoId}";
+
+                string almLabel = nombresAlmacenes.TryGetValue(cambio.Key.AlmacenId, out var aName)
+                    ? aName
+                    : $"#{cambio.Key.AlmacenId}";
+
                 if (inventario == null)
-                {
-                    return $"No existe inventario para el producto " +
-                           $"{cambio.Key.ProductoId} en el almacén " +
-                           $"{cambio.Key.AlmacenId}.";
-                }
+                    return $"No existe inventario registrado para {prodLabel} en el almacén {almLabel}.";
 
                 if (inventario.Stock + cambio.Value < 0)
-                {
-                    return $"Stock insuficiente para el producto " +
-                           $"{cambio.Key.ProductoId}. Disponible: " +
-                           $"{inventario.Stock}.";
-                }
+                    return $"Stock insuficiente para {prodLabel} en el almacén {almLabel} (disponible: {inventario.Stock}, solicitado: {Math.Abs(cambio.Value)}).";
             }
 
             return null;
@@ -315,6 +390,8 @@ namespace Ferreteria.Services
         private async Task<string?> ApplyStockChangesAsync(
             Dictionary<(int AlmacenId, int ProductoId), int> cambios,
             IReadOnlyList<Inventario> inventarios,
+            Dictionary<int, int> sucursalPorAlmacen,
+            Dictionary<int, string> nombresProductos,
             int ventaId)
         {
             foreach (var cambio in cambios)
@@ -326,8 +403,15 @@ namespace Ferreteria.Services
                     i.AlmacenId == cambio.Key.AlmacenId &&
                     i.ProductoId == cambio.Key.ProductoId);
 
-                var almacen = await repoAlmacen.GetByIdAsync(cambio.Key.AlmacenId);
-                int sucursalId = almacen?.SucursalId ?? inventario.Almacen?.SucursalId ?? 0;
+                int sucursalId = sucursalPorAlmacen.GetValueOrDefault(cambio.Key.AlmacenId);
+                if (sucursalId <= 0)
+                    sucursalId = inventario.Almacen?.SucursalId ?? inventario.SucursalId;
+
+                if (sucursalId <= 0)
+                    return $"El almacén #{cambio.Key.AlmacenId} no tiene una sucursal válida asignada.";
+
+                if (inventario.SucursalId <= 0)
+                    inventario.SucursalId = sucursalId;
 
                 int stockAnterior = inventario.Stock;
                 int stockNuevo = stockAnterior + cambio.Value;
@@ -336,9 +420,13 @@ namespace Ferreteria.Services
                 inventario.FechaActualizacion = DateTime.Now;
 
                 var actualizado = await repoInventario.UpdateAsync(inventario);
-
                 if (!actualizado)
-                    return $"No fue posible actualizar el inventario del producto {inventario.ProductoId}.";
+                {
+                    string prodLabel = nombresProductos.TryGetValue(inventario.ProductoId, out var pName)
+                        ? pName
+                        : $"ID {inventario.ProductoId}";
+                    return $"No fue posible actualizar el inventario de {prodLabel}.";
+                }
 
                 string accion = cambio.Value < 0
                     ? $"Salida por venta #{ventaId} (cantidad: {Math.Abs(cambio.Value)})."
@@ -354,10 +442,7 @@ namespace Ferreteria.Services
                     Observacion = accion
                 };
 
-                var registrado = await repoDetalle.CreateAsync(detalle);
-
-                if (registrado == null)
-                    return $"No fue posible registrar el detalle de inventario del producto {inventario.ProductoId}.";
+                await repoDetalle.CreateAsync(detalle);
             }
 
             return null;

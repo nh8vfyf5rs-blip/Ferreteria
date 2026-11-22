@@ -18,7 +18,7 @@ namespace Ferreteria.Services
                 Correo = proveedor.Correo,
                 Direccion = proveedor.Direccion,
                 FechaRegistro = proveedor.FechaRegistro,
-                TotalCompas = proveedor.Compras?.Count ?? 0
+                TotalCompras = proveedor.Compras?.Count ?? 0
             }).ToList();
         }
 

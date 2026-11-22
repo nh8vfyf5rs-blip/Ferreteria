@@ -146,7 +146,6 @@ builder.Services.AddAuthorization(options =>
             context.User.HasAnyPermission("rol.ver", "permiso.ver", "usuario.ver")));
 });
 
-
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -161,14 +160,16 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-
 app.UseHttpsRedirection();
 
 app.UseStatusCodePages(async context =>
 {
     var response = context.HttpContext.Response;
+    var path = context.HttpContext.Request.Path.Value ?? string.Empty;
 
-    if (response.StatusCode == 404 && !response.HasStarted)
+    if (response.StatusCode == 404 &&
+        !response.HasStarted &&
+        !path.StartsWith("/Home/NotFoundPage", StringComparison.OrdinalIgnoreCase))
     {
         response.Redirect("/Home/NotFoundPage");
     }
@@ -186,6 +187,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

@@ -29,6 +29,7 @@ namespace Ferreteria.Repositorios
         {
             return await context.Categorias
                 .AsNoTracking()
+                .Include(c => c.Productos)
                 .OrderBy(c => c.Name)
                 .ToListAsync();
         }

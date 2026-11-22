@@ -35,7 +35,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "proveedor.crear")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateProveedorDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateProveedorDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new
@@ -58,7 +58,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "proveedor.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> Update(int id, UpdateProveedorDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateProveedorDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new

@@ -1,6 +1,43 @@
 ﻿@using Ferreteria.Extensions
+@using System.Collections
+@using System.Reflection
 @{
     ViewData["Title"] = "Empleados";
+
+    string GetPropValue(object? obj, params string[] names)
+    {
+        if (obj == null) return "";
+        var type = obj.GetType();
+        foreach (var name in names)
+        {
+            var prop = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            if (prop != null)
+            {
+                var val = prop.GetValue(obj);
+                if (val != null) return val.ToString() ?? "";
+            }
+        }
+        return "";
+    }
+
+    IEnumerable ExtractEnumerable(object? source)
+    {
+        if (source == null) return Enumerable.Empty<object>();
+        if (source is IEnumerable enumerable and not string)
+            return enumerable;
+
+        var type = source.GetType();
+        foreach (var propName in new[] { "Data", "Items", "Results", "List" })
+        {
+            var prop = type.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            if (prop?.GetValue(source) is IEnumerable inner and not string)
+                return inner;
+        }
+        return Enumerable.Empty<object>();
+    }
+
+    var cargos = ExtractEnumerable(ViewBag.Cargos);
+    var sucursales = ExtractEnumerable(ViewBag.Sucursales);
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -56,12 +93,12 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label" for="Nombres">Nombres</label>
-                                <input type="text" id="Nombres" name="Nombres" class="form-control" maxlength="100" />
+                                <input type="text" id="Nombres" name="Nombres" class="form-control solo-letras" maxlength="100" />
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label" for="Apellidos">Apellidos</label>
-                                <input type="text" id="Apellidos" name="Apellidos" class="form-control" maxlength="100" />
+                                <input type="text" id="Apellidos" name="Apellidos" class="form-control solo-letras" maxlength="100" />
                             </div>
 
                             <div class="col-md-4">
@@ -71,7 +108,7 @@
 
                             <div class="col-md-4">
                                 <label class="form-label" for="Telefono">Teléfono</label>
-                                <input type="text" id="Telefono" name="Telefono" class="form-control" maxlength="30" />
+                                <input type="text" id="Telefono" name="Telefono" class="form-control solo-telefono" maxlength="8" inputmode="numeric" />
                             </div>
 
                             <div class="col-md-4">
@@ -83,6 +120,15 @@
                                 <label class="form-label" for="CargoId">Cargo</label>
                                 <select id="CargoId" name="CargoId" class="form-select">
                                     <option value="">-- Seleccione --</option>
+                                    @foreach (var cargo in cargos)
+                                    {
+                                        var id = GetPropValue(cargo, "Id", "id");
+                                        var nombre = GetPropValue(cargo, "Nombre", "nombre", "Name", "name", "Descripcion", "descripcion");
+                                        if (!string.IsNullOrWhiteSpace(id))
+                                        {
+                                            <option value="@id">@nombre</option>
+                                        }
+                                    }
                                 </select>
                             </div>
 
@@ -90,6 +136,15 @@
                                 <label class="form-label" for="SucursalId">Sucursal</label>
                                 <select id="SucursalId" name="SucursalId" class="form-select">
                                     <option value="">-- Seleccione --</option>
+                                    @foreach (var sucursal in sucursales)
+                                    {
+                                        var id = GetPropValue(sucursal, "Id", "id");
+                                        var nombre = GetPropValue(sucursal, "Nombre", "nombre", "Name", "name");
+                                        if (!string.IsNullOrWhiteSpace(id))
+                                        {
+                                            <option value="@id">@nombre</option>
+                                        }
+                                    }
                                 </select>
                             </div>
 
@@ -100,7 +155,7 @@
 
                             <div class="col-md-6">
                                 <label class="form-label" for="Salario">Salario</label>
-                                <input type="number" step="0.01" min="0" id="Salario" name="Salario" class="form-control" />
+                                <input type="number" step="0.01" min="0" id="Salario" name="Salario" class="form-control" inputmode="decimal" maxlength="12" />
                             </div>
 
                             <div class="col-12">

@@ -6,7 +6,7 @@
     --fn-surface: #FFFFFF;
     --fn-card-lila: #F2ECFF;
     --fn-card-lila-border: #E2D6FF;
-    --fn-dark-pill: #1C122E;
+    --fn-dark-pill: #161124;
     --fn-dark-pill-hover: #2B1C47;
     --fn-purple: #7C3AED;
     --fn-purple-bright: #9333EA;
@@ -19,6 +19,8 @@
 .admin-shell {
     display: flex;
     min-height: 100vh;
+    width: 100%;
+    position: relative;
     background-color: var(--fn-main-bg);
     color: var(--fn-text-main);
 }
@@ -32,6 +34,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    z-index: 1040;
 }
 
     .admin-sidebar .nav-link {
@@ -57,10 +60,40 @@
             box-shadow: inset 3px 0 0 var(--fn-purple-bright);
         }
 
+.admin-main-wrapper {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--fn-main-bg);
+}
+
+.admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    background-color: var(--fn-surface);
+    border-bottom: 1px solid var(--fn-border);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 2px 10px rgba(24, 16, 40, 0.04);
+}
+
 .admin-content {
-    flex: 1;
+    flex: 1 1 auto;
     padding: 1.75rem 2.25rem;
     background-color: var(--fn-main-bg);
+}
+
+.admin-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(24, 16, 40, 0.45);
+    z-index: 1030;
 }
 
 .admin-page-header {
@@ -126,10 +159,14 @@
     margin: 0;
 }
 
-.btn-admin-dark {
-    background-color: var(--fn-dark-pill);
-    color: #FFFFFF;
-    border: 1px solid rgba(168, 85, 247, 0.35);
+.btn-admin-dark,
+.admin-card .btn-primary,
+.admin-card .btn-success,
+.admin-card .btn-warning,
+.btn-primary {
+    background-color: var(--fn-dark-pill) !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(168, 85, 247, 0.35) !important;
     border-radius: 8px;
     padding: 0.45rem 0.9rem;
     font-size: 0.8rem;
@@ -141,10 +178,97 @@
 }
 
     .btn-admin-dark:hover,
-    .btn-admin-dark:focus {
-        background-color: var(--fn-dark-pill-hover);
-        color: #FFFFFF;
-        border-color: var(--fn-purple-bright);
+    .btn-admin-dark:focus,
+    .admin-card .btn-primary:hover,
+    .admin-card .btn-primary:focus,
+    .admin-card .btn-success:hover,
+    .admin-card .btn-success:focus,
+    .admin-card .btn-warning:hover,
+    .admin-card .btn-warning:focus,
+    .btn-primary:hover,
+    .btn-primary:focus {
+        background-color: var(--fn-dark-pill-hover) !important;
+        color: #FFFFFF !important;
+        border-color: var(--fn-purple-bright) !important;
+    }
+
+.admin-card .card-title .text-primary,
+.admin-card .card-title .text-success,
+.admin-card .card-title .text-warning {
+    color: var(--fn-purple) !important;
+}
+
+.admin-card .badge.bg-primary-subtle,
+.admin-card .badge {
+    background-color: #EFEAFD !important;
+    color: #4C1D95 !important;
+    border: 1px solid #DFD4FA !important;
+}
+
+.table .btn-warning,
+.table .btn-outline-warning {
+    background-color: #EFEAFD !important;
+    border-color: #DFD4FA !important;
+    color: var(--fn-purple) !important;
+}
+
+    .table .btn-warning:hover,
+    .table .btn-outline-warning:hover,
+    .table .btn-warning:focus,
+    .table .btn-outline-warning:focus {
+        background-color: var(--fn-purple) !important;
+        border-color: var(--fn-purple) !important;
+        color: #FFFFFF !important;
+    }
+
+    .table .btn-warning i,
+    .table .btn-outline-warning i,
+    .table .btn-edit i,
+    .table .fa-pen,
+    .table .fa-pen-to-square,
+    .table .fa-edit {
+        color: var(--fn-purple) !important;
+    }
+
+    .table .btn-warning:hover i,
+    .table .btn-outline-warning:hover i,
+    .table .btn-edit:hover i {
+        color: #FFFFFF !important;
+    }
+
+.table .btn-outline-primary {
+    background-color: #EFEAFD !important;
+    border-color: #C4B5FD !important;
+    color: var(--fn-purple) !important;
+}
+
+    .table .btn-outline-primary:hover,
+    .table .btn-outline-primary:focus {
+        background-color: var(--fn-purple) !important;
+        border-color: var(--fn-purple) !important;
+        color: #FFFFFF !important;
+    }
+
+.dataTables_wrapper .dataTables_paginate .paginate_button,
+.pagination .page-link {
+    background-color: #F3EEFF !important;
+    color: var(--fn-text-main) !important;
+    border-color: #DFD4FA !important;
+}
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+    .pagination .page-link:hover {
+        background-color: #EFEAFD !important;
+        border-color: var(--fn-purple) !important;
+        color: var(--fn-purple) !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+    .page-item.active .page-link {
+        background-color: var(--fn-purple) !important;
+        border-color: var(--fn-purple) !important;
+        color: #FFFFFF !important;
     }
 
 .permissions-panel {
@@ -215,15 +339,15 @@
 }
 
 .admin-table thead th {
-    background-color: var(--fn-card-lila) !important;
-    color: var(--fn-text-main) !important;
+    background-color: var(--fn-card-lila);
+    color: var(--fn-text-main);
     font-size: 0.82rem;
     font-weight: 600;
-    border-bottom: 1.5px solid var(--fn-card-lila-border) !important;
+    border-bottom: 1.5px solid var(--fn-card-lila-border);
 }
 
 .admin-table tbody tr:hover td {
-    background-color: #FAF7FF !important;
+    background-color: #FAF7FF;
 }
 
 .admin-table code {
@@ -249,13 +373,23 @@
     display: block;
 }
 
-@media (max-width: 768px) {
-    .admin-shell {
-        flex-direction: column;
+@media (max-width: 991.98px) {
+    .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 240px;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
     }
 
-    .admin-sidebar {
-        width: 100%;
+        .admin-sidebar.is-open {
+            transform: translateX(0);
+        }
+
+    .admin-backdrop.is-visible {
+        display: block;
     }
 
     .admin-content {

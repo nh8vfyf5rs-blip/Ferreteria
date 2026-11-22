@@ -13,10 +13,14 @@ namespace Ferreteria.DTOS
         [Required]
         public int AlmacenId { get; set; }
 
-        public DateTime FechaVenta { get; set; }= DateTime.Now;
+        [Required(ErrorMessage = "Debe seleccionar un método de pago.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un método de pago válido.")]
+        public int MetodoPagoId { get; set; }
+
+        public DateTime FechaVenta { get; set; } = DateTime.Now;
 
         [Required]
-        [MinLength(1, ErrorMessage = "Debe agregar almenos un producto.")]
-        public List<DetalleVentaDto> detalleVentaDtos { get; set; } = new();
+        [MinLength(1, ErrorMessage = "Debe agregar al menos un producto.")]
+        public List<DetalleVentaDto> DetalleVentaDtos { get; set; } = new();
     }
 }

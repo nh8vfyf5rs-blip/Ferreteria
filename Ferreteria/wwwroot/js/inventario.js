@@ -1,7 +1,7 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     const tableElement = $('#inventarioTable');
     const modalElement = document.getElementById('inventarioModal');
-    const modal = modalElement ? new bootstrap.Modal(modalElement) : null;
+    const modal = (modalElement && window.bootstrap) ? new bootstrap.Modal(modalElement) : null;
     const form = document.getElementById('inventarioForm');
     const modalTitle = document.getElementById('inventarioModalTitle');
     const config = window.inventariosConfig || { canUpdate: false, canDelete: false };
@@ -10,14 +10,46 @@
         ajax: {
             url: '/Inventario/GetData',
             type: 'POST',
-            dataSrc: ''
+            dataSrc: function (json) {
+                if (Array.isArray(json)) return json;
+                if (Array.isArray(json?.data)) return json.data;
+                return [];
+            }
         },
         columns: [
             { data: 'id' },
-            { data: 'productoName' },
-            { data: 'almacenName' },
-            { data: 'cantidad' },
-            { data: 'stockMinimo' },
+            {
+                data: null,
+                render: function (_, __, row) {
+                    return row.sucursalNombre ?? '-';
+                }
+            },
+            {
+                data: null,
+                render: function (_, __, row) {
+                    return row.almacenNombre ?? '-';
+                }
+            },
+            {
+                data: null,
+                render: function (_, __, row) {
+                    return row.productoNombre ?? '-';
+                }
+            },
+            {
+                data: null,
+                render: function (_, __, row) {
+                    return row.stock ?? 0;
+                }
+            },
+            {
+                data: 'fechaActualizacion',
+                render: function (value) {
+                    if (!value) return '-';
+                    const fecha = new Date(value);
+                    return isNaN(fecha.getTime()) ? value : fecha.toLocaleDateString('es-NI');
+                }
+            },
             {
                 data: 'id',
                 orderable: false,
@@ -40,55 +72,83 @@
     });
 
     if (form && modal) {
-        const validator = new JustValidate('#inventarioForm');
-        validator
-            .addField('#ProductoId', [
-                { rule: 'required', errorMessage: 'Debe seleccionar un producto' }
-            ])
-            .addField('#AlmacenId', [
-                { rule: 'required', errorMessage: 'Debe seleccionar un almacén' }
-            ])
-            .addField('#Cantidad', [
-                { rule: 'required', errorMessage: 'La cantidad es obligatoria' }
-            ])
-            .onSuccess(async () => {
-                const id = document.getElementById('Id').value;
-                const isEdit = id && parseInt(id, 10) > 0;
-                const url = isEdit ? `/Inventario/Update?id=${id}` : '/Inventario/Create';
-                const formData = new FormData(form);
+        const validator = new JustValidate('#inventarioForm', {
+            validateBeforeSubmitting: true,
+            focusInvalidField: true,
+            errorFieldCssClass: 'is-invalid',
+            successFieldCssClass: 'is-valid'
+        });
 
-                try {
-                    const response = await axios.post(url, formData);
-                    if (response.data.success) {
-                        modal.hide();
-                        await Swal.fire({
-                            icon: 'success',
-                            title: 'Listo',
-                            text: response.data.message,
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-                        dataTable.ajax.reload(null, false);
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.data.errorMessage || response.data.message || 'No se pudo guardar el inventario.'
-                        });
-                    }
-                } catch (error) {
+        if (document.getElementById('AlmacenId')) {
+            validator.addField('#AlmacenId', [
+                { rule: 'required', errorMessage: 'Debe seleccionar un almacén' }
+            ]);
+        }
+
+        if (document.getElementById('ProductoId')) {
+            validator.addField('#ProductoId', [
+                { rule: 'required', errorMessage: 'Debe seleccionar un producto' }
+            ]);
+        }
+
+        if (document.getElementById('Stock')) {
+            validator.addField('#Stock', [
+                { rule: 'required', errorMessage: 'El stock es obligatorio' },
+                { rule: 'number', errorMessage: 'Debe ser un número válido' },
+                {
+                    validator: (value) => parseInt(value, 10) >= 0,
+                    errorMessage: 'El stock no puede ser negativo'
+                }
+            ]);
+        }
+
+        validator.onSuccess(async (event) => {
+            event.preventDefault();
+
+            const idVal = document.getElementById('Id')?.value;
+            const parsedId = idVal ? parseInt(idVal, 10) : 0;
+            const isEdit = parsedId > 0;
+            const url = isEdit ? `/Inventario/Update?id=${parsedId}` : '/Inventario/Create';
+
+            const payload = {
+                almacenId: parseInt(document.getElementById('AlmacenId').value, 10),
+                productoId: parseInt(document.getElementById('ProductoId').value, 10),
+                stock: parseInt(document.getElementById('Stock').value, 10)
+            };
+
+            try {
+                const response = await axios.post(url, payload);
+                if (response.data.success) {
+                    modal.hide();
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Listo',
+                        text: response.data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    dataTable.ajax.reload(null, false);
+                } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: error.response?.data?.errorMessage || error.response?.data?.message || 'No se pudo completar la operación.'
+                        text: response.data.errorMessage || response.data.message || 'No se pudo guardar el inventario.'
                     });
                 }
-            });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.response?.data?.errorMessage || error.response?.data?.message || 'No se pudo completar la operación.'
+                });
+            }
+        });
 
         document.getElementById('btnNuevoInventario')?.addEventListener('click', () => {
             form.reset();
             validator.refresh();
             document.getElementById('Id').value = '';
+            document.getElementById('Stock').value = 0;
             modalTitle.textContent = 'Nuevo Registro de Inventario';
             modal.show();
         });
@@ -101,10 +161,9 @@
                 form.reset();
                 validator.refresh();
                 document.getElementById('Id').value = data.id;
-                document.getElementById('ProductoId').value = data.productoId;
                 document.getElementById('AlmacenId').value = data.almacenId;
-                document.getElementById('Cantidad').value = data.cantidad ?? 0;
-                if (document.getElementById('StockMinimo')) document.getElementById('StockMinimo').value = data.stockMinimo ?? 0;
+                document.getElementById('ProductoId').value = data.productoId;
+                document.getElementById('Stock').value = data.stock ?? 0;
                 modalTitle.textContent = 'Editar Inventario';
                 modal.show();
             } catch {

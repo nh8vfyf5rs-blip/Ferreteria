@@ -23,7 +23,6 @@
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
-                    <th>Total Pagos</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -81,5 +80,5 @@
             canDelete: @User.HasPermission("metodopago.borrar").ToString().ToLower()
         };
     </script>
-    <script src="~/js/metodo-pago.js" asp-append-version="true"></script>
+    <script src="~/js/metodoPago.js" asp-append-version="true"></script>
 }

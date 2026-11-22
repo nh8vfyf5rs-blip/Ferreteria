@@ -51,14 +51,14 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label" for="AlmacenId">Almacén</label>
-                                <select id="AlmacenId" name="AlmacenId" class="form-select">
+                                <select id="AlmacenId" name="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select">
                                     <option value="">-- Seleccione --</option>
                                 </select>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label" for="ProductoId">Producto</label>
-                                <select id="ProductoId" name="ProductoId" class="form-select">
+                                <select id="ProductoId" name="ProductoId" asp-items="ViewBag.Productos" class="form-select">
                                     <option value="">-- Seleccione --</option>
                                 </select>
                             </div>
@@ -91,7 +91,7 @@
         window.inventariosConfig = {
             canUpdate: @User.HasPermission("inventario.actualizar").ToString().ToLower(),
             canDelete: @User.HasPermission("inventario.borrar").ToString().ToLower()
-        };
+                };
     </script>
     <script src="~/js/inventario.js" asp-append-version="true"></script>
 }

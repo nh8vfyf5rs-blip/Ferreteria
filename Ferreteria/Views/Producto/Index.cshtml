@@ -22,12 +22,12 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Código</th>
                     <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
                     <th>Categoría</th>
-                    <th>Proveedor</th>
+                    <th>Marca</th>
+                    <th>P. Compra</th>
+                    <th>P. Venta</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -45,6 +45,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="productoForm" novalidate>
+                    @Html.AntiForgeryToken()
                     <div class="modal-body">
                         <input type="hidden" id="Id" name="Id" />
 
@@ -54,14 +55,14 @@
                                 <input type="text" id="Nombre" name="Nombre" class="form-control" maxlength="100" />
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label" for="Precio">Precio</label>
-                                <input type="number" step="0.01" id="Precio" name="Precio" class="form-control" />
+                                <input type="number" step="0.01" min="0" id="Precio" name="Precio" class="form-control" />
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-3">
                                 <label class="form-label" for="Stock">Stock</label>
-                                <input type="number" id="Stock" name="Stock" class="form-control" />
+                                <input type="number" min="0" id="Stock" name="Stock" class="form-control" />
                             </div>
 
                             <div class="col-md-6">
@@ -106,7 +107,7 @@
         window.productosConfig = {
             canUpdate: @User.HasPermission("producto.actualizar").ToString().ToLower(),
             canDelete: @User.HasPermission("producto.borrar").ToString().ToLower()
-        };
+                };
     </script>
     <script src="~/js/producto.js" asp-append-version="true"></script>
 }

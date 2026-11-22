@@ -1,7 +1,9 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     const tableElement = $('#productoTable');
+    if (!tableElement.length) return;
+
     const modalElement = document.getElementById('productoModal');
-    const modal = modalElement ? new bootstrap.Modal(modalElement) : null;
+    const modal = (modalElement && window.bootstrap) ? new bootstrap.Modal(modalElement) : null;
     const form = document.getElementById('productoForm');
     const modalTitle = document.getElementById('productoModalTitle');
     const config = window.productosConfig || { canUpdate: false, canDelete: false };
@@ -10,21 +12,43 @@
         ajax: {
             url: '/Producto/GetData',
             type: 'POST',
-            dataSrc: ''
+            dataSrc: function (json) {
+                if (Array.isArray(json)) return json;
+                if (Array.isArray(json?.data)) return json.data;
+                return [];
+            }
         },
         columns: [
             { data: 'id' },
-            { data: 'codigo' },
-            { data: 'name' },
-            { data: 'categoriaName' },
-            { data: 'marcaName' },
             {
-                data: 'precioCompra',
-                render: (data) => data != null ? Number(data).toFixed(2) : '0.00'
+                data: null,
+                render: (_, __, row) => row.codigo ?? '-'
             },
             {
-                data: 'precioVenta',
-                render: (data) => data != null ? Number(data).toFixed(2) : '0.00'
+                data: null,
+                render: (_, __, row) => row.nombre ?? row.name ?? '-'
+            },
+            {
+                data: null,
+                render: (_, __, row) => row.categoriaNombre ?? row.categoriaName ?? '-'
+            },
+            {
+                data: null,
+                render: (_, __, row) => row.marcaNombre ?? row.marcaName ?? '-'
+            },
+            {
+                data: null,
+                render: (_, __, row) => {
+                    const val = row.precioCompra ?? row.precio;
+                    return val != null ? Number(val).toFixed(2) : '0.00';
+                }
+            },
+            {
+                data: null,
+                render: (_, __, row) => {
+                    const val = row.precioVenta ?? row.precio;
+                    return val != null ? Number(val).toFixed(2) : '0.00';
+                }
             },
             {
                 data: 'id',
@@ -48,29 +72,74 @@
     });
 
     if (form && modal) {
-        const validator = new JustValidate('#productoForm');
+        const validator = new JustValidate('#productoForm', {
+            validateBeforeSubmitting: true,
+            focusInvalidField: true,
+            errorFieldCssClass: 'is-invalid',
+            successFieldCssClass: 'is-valid'
+        });
+
         validator
-            .addField('#Name', [
-                { rule: 'required', errorMessage: 'El nombre del producto es obligatorio' }
+            .addField('#Nombre', [
+                { rule: 'required', errorMessage: 'El nombre del producto es obligatorio' },
+                { rule: 'maxLength', value: 100, errorMessage: 'Máximo 100 caracteres' }
+            ])
+            .addField('#Precio', [
+                { rule: 'required', errorMessage: 'El precio es obligatorio' },
+                {
+                    validator: (value) => {
+                        const num = Number(String(value ?? '').trim().replace(',', '.'));
+                        return Number.isFinite(num) && num > 0;
+                    },
+                    errorMessage: 'El precio debe ser mayor a 0'
+                }
+            ])
+            .addField('#Stock', [
+                { rule: 'required', errorMessage: 'El stock es obligatorio' },
+                {
+                    validator: (value) => {
+                        const num = Number(String(value ?? '').trim());
+                        return Number.isInteger(num) && num >= 0;
+                    },
+                    errorMessage: 'El stock debe ser un número entero de 0 o mayor'
+                }
             ])
             .addField('#CategoriaId', [
                 { rule: 'required', errorMessage: 'Debe seleccionar una categoría' }
             ])
-            .addField('#MarcaId', [
-                { rule: 'required', errorMessage: 'Debe seleccionar una marca' }
+            .addField('#ProveedorId', [
+                { rule: 'required', errorMessage: 'Debe seleccionar un proveedor' }
             ])
-            .addField('#PrecioVenta', [
-                { rule: 'required', errorMessage: 'El precio de venta es obligatorio' }
+            .addField('#Descripcion', [
+                { rule: 'maxLength', value: 250, errorMessage: 'Máximo 250 caracteres' }
             ])
-            .onSuccess(async () => {
+            .onSuccess(async (event) => {
+                event.preventDefault();
+
                 const id = document.getElementById('Id').value;
                 const isEdit = id && parseInt(id, 10) > 0;
                 const url = isEdit ? `/Producto/Update?id=${id}` : '/Producto/Create';
-                const formData = new FormData(form);
+
+                const nombreLimpio = (document.getElementById('Nombre')?.value || '').trim();
+                const precioLimpio = (document.getElementById('Precio')?.value || '').trim().replace(',', '.');
+                const stockLimpio = (document.getElementById('Stock')?.value || '').trim();
+                const descLimpia = (document.getElementById('Descripcion')?.value || '').trim();
+                const categoriaId = parseInt(document.getElementById('CategoriaId')?.value || '0', 10);
+                const proveedorId = parseInt(document.getElementById('ProveedorId')?.value || '0', 10);
+
+                const payload = {
+                    Id: isEdit ? parseInt(id, 10) : 0,
+                    Nombre: nombreLimpio,
+                    Descripcion: descLimpia,
+                    Precio: Number(precioLimpio),
+                    Stock: parseInt(stockLimpio, 10),
+                    CategoriaId: categoriaId,
+                    ProveedorId: proveedorId
+                };
 
                 try {
-                    const response = await axios.post(url, formData);
-                    if (response.data.success) {
+                    const response = await axios.post(url, payload);
+                    if (response.data?.success) {
                         modal.hide();
                         await Swal.fire({
                             icon: 'success',
@@ -84,14 +153,21 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: response.data.errorMessage || response.data.message || 'No se pudo guardar el producto.'
+                            text: response.data?.errorMessage || response.data?.message || 'No se pudo guardar el producto.'
                         });
                     }
                 } catch (error) {
+                    const data = error.response?.data;
+                    const mensajeError =
+                        data?.errorMessage ||
+                        data?.message ||
+                        data?.title ||
+                        'No se pudo completar la operación.';
+
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: error.response?.data?.errorMessage || error.response?.data?.message || 'No se pudo completar la operación.'
+                        text: mensajeError
                     });
                 }
             });
@@ -112,12 +188,12 @@
                 form.reset();
                 validator.refresh();
                 document.getElementById('Id').value = data.id;
-                if (document.getElementById('Codigo')) document.getElementById('Codigo').value = data.codigo || '';
-                document.getElementById('Name').value = data.name;
-                document.getElementById('CategoriaId').value = data.categoriaId;
-                document.getElementById('MarcaId').value = data.marcaId;
-                if (document.getElementById('PrecioCompra')) document.getElementById('PrecioCompra').value = data.precioCompra ?? '';
-                document.getElementById('PrecioVenta').value = data.precioVenta ?? '';
+                document.getElementById('Nombre').value = data.nombre ?? '';
+                document.getElementById('Descripcion').value = data.descripcion ?? '';
+                document.getElementById('Precio').value = data.precio ?? '';
+                document.getElementById('Stock').value = data.stock ?? 0;
+                document.getElementById('CategoriaId').value = data.categoriaId ?? '';
+                document.getElementById('ProveedorId').value = data.proveedorId ?? '';
                 modalTitle.textContent = 'Editar Producto';
                 modal.show();
             } catch {
@@ -141,7 +217,7 @@
 
         try {
             const response = await axios.post(`/Producto/Delete?id=${id}`);
-            if (response.data.success) {
+            if (response.data?.success) {
                 await Swal.fire({
                     icon: 'success',
                     title: 'Listo',
@@ -154,14 +230,21 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: response.data.errorMessage || response.data.message || 'No se pudo eliminar el producto.'
+                    text: response.data?.errorMessage || response.data?.message || 'No se pudo eliminar el producto.'
                 });
             }
         } catch (error) {
+            const data = error.response?.data;
+            const mensajeError =
+                data?.errorMessage ||
+                data?.message ||
+                data?.title ||
+                'No se pudo completar la operación.';
+
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.response?.data?.errorMessage || error.response?.data?.message || 'No se pudo completar la operación.'
+                text: mensajeError
             });
         }
     });

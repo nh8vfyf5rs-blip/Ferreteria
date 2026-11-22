@@ -1,6 +1,7 @@
 ﻿using Ferreteria.DTOS;
 using Ferreteria.Models;
 using Ferreteria.Repositorios;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Services
 {
@@ -52,7 +53,6 @@ namespace Ferreteria.Services
             };
         }
 
-        // Nueva consulta: devuelve el stock del almacén seleccionado.
         public async Task<ProductoDto?> GetByIdAsync(int id, int almacenId)
         {
             var producto = await productoRepository.GetByIdAsync(id);
@@ -234,16 +234,29 @@ namespace Ferreteria.Services
                 return (false, "No se puede eliminar porque tiene movimientos de inventario asociados.");
 
             var inventarios = await inventarioRepository.GetAllAsync();
+            var inventariosProducto = inventarios.Where(i => i.ProductoId == id).ToList();
 
-            if (inventarios.Any(i => i.ProductoId == id))
-                return (false, "No se puede eliminar porque el producto tiene registros de inventario asociados.");
+            if (inventariosProducto.Any(i => i.Stock > 0))
+                return (false, "No se puede eliminar porque el producto aún tiene existencias en inventario.");
 
-            var eliminado = await productoRepository.DeleteAsync(id);
+            try
+            {
+                foreach (var inv in inventariosProducto)
+                {
+                    await inventarioRepository.DeleteAsync(inv.Id);
+                }
 
-            if (!eliminado)
-                return (false, "No se pudo eliminar el producto.");
+                var eliminado = await productoRepository.DeleteAsync(id);
 
-            return (true, null);
+                if (!eliminado)
+                    return (false, "No se pudo eliminar el producto.");
+
+                return (true, null);
+            }
+            catch (DbUpdateException)
+            {
+                return (false, "No se puede eliminar el producto porque tiene registros relacionados en el sistema.");
+            }
         }
 
         private async Task<string> GenerarCodigoUnicoAsync(string nombre)

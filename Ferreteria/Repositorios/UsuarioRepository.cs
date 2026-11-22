@@ -66,16 +66,16 @@ namespace Ferreteria.Repositorios
 
         public async Task<Usuario?> GetUsuarioByEmail(string email)
         {
-            var normalized = email.Trim();
+            var normalized = email.Trim().ToLower();
             return await UserWithPermission
-                .FirstOrDefaultAsync(u => u.Email == normalized);
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalized);
         }
 
         public async Task<Usuario?> GetUsuarioByUserName(string userName)
         {
-            var normalized = userName.Trim();
+            var normalized = userName.Trim().ToLower();
             return await UserWithPermission
-                .FirstOrDefaultAsync(u => u.UserName == normalized);
+                .FirstOrDefaultAsync(u => u.UserName.ToLower() == normalized);
         }
 
         public async Task<Usuario?> GetUsuarioByRefreshTokenAsync(string refreshToken)

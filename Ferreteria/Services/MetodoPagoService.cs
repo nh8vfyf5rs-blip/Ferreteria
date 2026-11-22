@@ -13,7 +13,9 @@ namespace Ferreteria.Services
             return metodosPago.Select(m => new MetodoPagoTableDto
             {
                 Id = m.Id,
-                Name = m.Name
+                Name = m.Name,
+                CantidadPagos = m.DetallePagos?.Count ?? 0,
+                TotalPagos = m.DetallePagos?.Sum(dp => dp.Monto) ?? 0m
             }).ToList();
         }
 
@@ -72,7 +74,7 @@ namespace Ferreteria.Services
             if (metodoPago == null)
                 return (false, "El método de pago no existe.");
 
-            if (metodoPago.DetallePagos.Any())
+            if (metodoPago.DetallePagos != null && metodoPago.DetallePagos.Any())
                 return (false, "No se puede eliminar el método de pago porque tiene detalles de pago asociados.");
 
             await repo.DeleteAsync(id);

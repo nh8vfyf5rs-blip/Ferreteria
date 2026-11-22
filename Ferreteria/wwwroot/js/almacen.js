@@ -1,21 +1,32 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     const tableElement = $('#almacenTable');
+    if (!tableElement.length) return;
+
     const modalElement = document.getElementById('almacenModal');
-    const modal = modalElement ? new bootstrap.Modal(modalElement) : null;
+    const modal = (modalElement && window.bootstrap) ? new bootstrap.Modal(modalElement) : null;
     const form = document.getElementById('almacenForm');
     const modalTitle = document.getElementById('almacenModalTitle');
     const config = window.almacenesConfig || { canUpdate: false, canDelete: false };
+
+    const regexSoloLetras = /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s'-]+$/;
 
     const dataTable = tableElement.DataTable({
         ajax: {
             url: '/Almacen/GetData',
             type: 'POST',
-            dataSrc: ''
+            dataSrc: function (json) {
+                if (Array.isArray(json)) return json;
+                if (Array.isArray(json?.data)) return json.data;
+                return [];
+            }
         },
         columns: [
             { data: 'id' },
             { data: 'name' },
-            { data: 'sucursalName' },
+            {
+                data: null,
+                render: (_, __, row) => row.sucursalName ?? row.sucursalNombre ?? '-'
+            },
             {
                 data: 'id',
                 orderable: false,
@@ -38,23 +49,47 @@
     });
 
     if (form && modal) {
-        const validator = new JustValidate('#almacenForm');
+        const validator = new JustValidate('#almacenForm', {
+            validateBeforeSubmitting: true,
+            focusInvalidField: true,
+            errorFieldCssClass: 'is-invalid',
+            successFieldCssClass: 'is-valid'
+        });
+
         validator
             .addField('#Name', [
-                { rule: 'required', errorMessage: 'El nombre del almacén es obligatorio' }
+                { rule: 'required', errorMessage: 'El nombre del almacén es obligatorio' },
+                { rule: 'maxLength', value: 100, errorMessage: 'Máximo 100 caracteres' },
+                {
+                    validator: (value) => {
+                        const limpio = String(value ?? '').trim();
+                        if (!limpio) return true;
+                        return regexSoloLetras.test(limpio);
+                    },
+                    errorMessage: 'El nombre solo puede contener letras'
+                }
             ])
             .addField('#SucursalId', [
                 { rule: 'required', errorMessage: 'Debe seleccionar una sucursal' }
             ])
             .onSuccess(async () => {
-                const id = document.getElementById('Id').value;
-                const isEdit = id && parseInt(id, 10) > 0;
+                const nameInput = document.getElementById('Name');
+                if (nameInput) {
+                    nameInput.value = nameInput.value.trim();
+                }
+
+                const idVal = document.getElementById('Id').value;
+                const isEdit = idVal && parseInt(idVal, 10) > 0;
                 const url = isEdit ? '/Almacen/Update' : '/Almacen/Create';
                 const formData = new FormData(form);
 
+                if (!isEdit) {
+                    formData.delete('Id');
+                }
+
                 try {
                     const response = await axios.post(url, formData);
-                    if (response.data.success) {
+                    if (response.data?.success) {
                         modal.hide();
                         await Swal.fire({
                             icon: 'success',
@@ -68,7 +103,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: response.data.errorMessage || response.data.message || 'No se pudo guardar el almacén.'
+                            text: response.data?.errorMessage || response.data?.message || 'No se pudo guardar el almacén.'
                         });
                     }
                 } catch (error) {
@@ -96,8 +131,8 @@
                 form.reset();
                 validator.refresh();
                 document.getElementById('Id').value = data.id;
-                document.getElementById('Name').value = data.name;
-                document.getElementById('SucursalId').value = data.sucursalId;
+                document.getElementById('Name').value = data.name ?? '';
+                document.getElementById('SucursalId').value = data.sucursalId ?? '';
                 modalTitle.textContent = 'Editar Almacén';
                 modal.show();
             } catch {
@@ -121,7 +156,7 @@
 
         try {
             const response = await axios.post(`/Almacen/Delete?id=${id}`);
-            if (response.data.success) {
+            if (response.data?.success) {
                 await Swal.fire({
                     icon: 'success',
                     title: 'Listo',
@@ -134,7 +169,7 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: response.data.errorMessage || response.data.message || 'No se pudo eliminar el almacén.'
+                    text: response.data?.errorMessage || response.data?.message || 'No se pudo eliminar el almacén.'
                 });
             }
         } catch (error) {

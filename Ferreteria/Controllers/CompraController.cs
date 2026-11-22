@@ -2,6 +2,7 @@
 using Ferreteria.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Ferreteria.Controllers
 {
@@ -15,10 +16,15 @@ namespace Ferreteria.Controllers
         [Authorize(Policy = "compra.ver")]
         public async Task<IActionResult> Index()
         {
-            ViewBag.Proveedores = await _proveedorService.GetAllAsync();
-            ViewBag.Empleados = await _empleadoService.GetAllAsync();
-            ViewBag.Almacenes = await _almacenService.GetAllAsync();
-            ViewBag.Productos = await _productoService.GetAllAsync();
+            var proveedores = await _proveedorService.GetAllAsync();
+            var empleados = await _empleadoService.GetAllAsync();
+            var almacenes = await _almacenService.GetAllAsync();
+            var productos = await _productoService.GetAllAsync();
+
+            ViewBag.Proveedores = new SelectList(proveedores, "Id", "NombreEmpresa");
+            ViewBag.Empleados = new SelectList(empleados, "Id", "Nombres");
+            ViewBag.Almacenes = new SelectList(almacenes, "Id", "Name");
+            ViewBag.Productos = new SelectList(productos, "Id", "Nombre");
 
             return View();
         }
@@ -36,7 +42,6 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _compraService.GetByIdAsync(id);
-
             if (result == null)
                 return NotFound(new { message = "Compra no encontrada" });
 
@@ -45,38 +50,52 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "compra.crear")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateCompraDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateCompraDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Error en los datos a guardar"
-                });
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .Where(m => !string.IsNullOrWhiteSpace(m))
+                    .ToList();
 
-            var (success, errorMessage) = await _compraService.CreateAsync(dto);
+                var errorMessage = errors.Count > 0
+                    ? string.Join(" | ", errors)
+                    : "Error en los datos a guardar";
 
+                return BadRequest(new { success = false, message = errorMessage, errorMessage });
+            }
+
+            var (success, errorMsg) = await _compraService.CreateAsync(dto);
             return success
                 ? Ok(new { success = true, message = "Compra creada satisfactoriamente" })
-                : BadRequest(new { success = false, errorMessage });
+                : BadRequest(new { success = false, errorMessage = errorMsg });
         }
 
         [Authorize(Policy = "compra.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> Update(int id, UpdateCompraDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateCompraDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Error en los datos a guardar"
-                });
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .Where(m => !string.IsNullOrWhiteSpace(m))
+                    .ToList();
 
-            var (success, errorMessage) = await _compraService.UpdateAsync(id, dto);
+                var errorMessage = errors.Count > 0
+                    ? string.Join(" | ", errors)
+                    : "Error en los datos a guardar";
 
+                return BadRequest(new { success = false, message = errorMessage, errorMessage });
+            }
+
+            var (success, errorMsg) = await _compraService.UpdateAsync(id, dto);
             return success
                 ? Ok(new { success = true, message = "Compra actualizada satisfactoriamente" })
-                : BadRequest(new { success = false, errorMessage });
+                : BadRequest(new { success = false, errorMessage = errorMsg });
         }
 
         [Authorize(Policy = "compra.borrar")]
@@ -84,7 +103,6 @@ namespace Ferreteria.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var (success, errorMessage) = await _compraService.DeleteAsync(id);
-
             return success
                 ? Ok(new { success = true, message = "Compra eliminada satisfactoriamente" })
                 : BadRequest(new { success = false, errorMessage });

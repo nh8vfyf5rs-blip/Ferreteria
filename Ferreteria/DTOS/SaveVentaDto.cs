@@ -11,9 +11,13 @@ namespace Ferreteria.DTOS
 
         [Required]
         public int EmpleadoId { get; set; }
+        public string? NumeroComprobante { get; set; }
 
         [Required]
         public int AlmacenId { get; set; }
+
+        [Required(ErrorMessage = "Seleccione un método de pago.")]
+        public int MetodoPagoId { get; set; }
 
         public DateTime FechaVenta { get; set; } = DateTime.Now;
 

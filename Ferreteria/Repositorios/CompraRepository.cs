@@ -33,12 +33,13 @@ namespace Ferreteria.Repositorios
                 .AsNoTracking()
                 .Include(c => c.Proveedor)
                 .Include(c => c.Empleado)
+                .Include(c => c.Almacen)
+                    .ThenInclude(a => a.Sucursal)
                 .Include(c => c.DetalleCompras)
                     .ThenInclude(d => d.Producto)
                 .OrderByDescending(c => c.FechaCompra)
                 .ToListAsync();
         }
-
         public async Task<Compra?> GetByIdAsync(int id)
         {
             return await context.Compras

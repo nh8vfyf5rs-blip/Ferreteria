@@ -1,13 +1,22 @@
-﻿@{
+﻿@using System.Security.Claims
+@{
     ViewData["Title"] = "Devoluciones";
+
+    var esGerente = User?.IsInRole("Gerente") == true
+        || User?.Claims.Any(c =>
+            (c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.Equals("role", StringComparison.OrdinalIgnoreCase))
+            && string.Equals(c.Value, "Gerente", StringComparison.OrdinalIgnoreCase)) == true;
 }
 
 <div class="container-fluid py-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Gestión de Devoluciones</h4>
-        <button type="button" class="btn btn-primary" id="btnNuevaDevolucion">
-            Nueva Devolución
-        </button>
+        @if (!esGerente)
+        {
+            <button type="button" class="btn btn-primary" id="btnNuevaDevolucion">
+                Nueva Devolución
+            </button>
+        }
     </div>
 
     <div class="card shadow-sm">
@@ -18,7 +27,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Fecha</th>
-                            <th>Venta / Referencia</th>
+                            <th>Venta / Cliente</th>
                             <th>Motivo</th>
                             <th>Total</th>
                             <th>Acciones</th>
@@ -31,48 +40,91 @@
     </div>
 </div>
 
-<!-- Modal Devolución -->
-<div class="modal fade" id="devolucionesModal" tabindex="-1" aria-hidden="true">
+@if (!esGerente)
+{
+    <!-- Modal Devolución -->
+    <div class="modal fade" id="devolucionesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="devolucionesModalTitle">Nueva Devolución</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form id="devolucionesForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="Id" name="Id" value="0" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="VentaId" class="form-label">ID de Venta</label>
+                                <input type="number" min="1" class="form-control" id="VentaId" name="VentaId" required />
+                            </div>
+                            <div class="col-12">
+                                <label for="Motivo" class="form-label">Motivo</label>
+                                <textarea class="form-control" id="Motivo" name="Motivo" rows="3" maxlength="250" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarDevolucion">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Ver Devolución (Solo lectura para Gerente) -->
+<div class="modal fade" id="detalleDevolucionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="devolucionesModalTitle">Nueva Devolución</h5>
+                <h5 class="modal-title">Detalle de Devolución</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form id="devolucionesForm" novalidate>
-                @Html.AntiForgeryToken()
-                <div class="modal-body">
-                    <input type="hidden" id="Id" name="Id" value="0" />
-
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="Fecha" class="form-label">Fecha</label>
-                            <input type="date" class="form-control" id="Fecha" name="Fecha" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label for="VentaId" class="form-label">ID de Venta / Referencia</label>
-                            <input type="number" class="form-control" id="VentaId" name="VentaId" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label for="Total" class="form-label">Total</label>
-                            <input type="number" step="0.01" min="0.01" class="form-control" id="Total" name="Total" required />
-                        </div>
-                        <div class="col-12">
-                            <label for="Motivo" class="form-label">Motivo</label>
-                            <textarea class="form-control" id="Motivo" name="Motivo" rows="3" required></textarea>
-                        </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">ID</label>
+                        <div class="form-control-plaintext" id="verId">-</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Fecha</label>
+                        <div class="form-control-plaintext" id="verFecha">-</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Venta</label>
+                        <div class="form-control-plaintext" id="verVenta">-</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Cliente</label>
+                        <div class="form-control-plaintext" id="verCliente">-</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Total</label>
+                        <div class="form-control-plaintext" id="verTotal">0.00</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Motivo</label>
+                        <div class="form-control bg-light" id="verMotivo" style="min-height: 75px;">-</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnGuardarDevolucion">Guardar</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script>
+        window.devolucionesConfig = {
+            isGerente: @esGerente.ToString().ToLower()
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/just-validate@4/dist/just-validate.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

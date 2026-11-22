@@ -4,11 +4,18 @@ using Ferreteria.Repositorios;
 
 namespace Ferreteria.Services
 {
-    public class ClienteService(IClienteRepository repo) : IClienteService
+    public class ClienteService(
+        IClienteRepository repo,
+        IVentaRepository ventaRepo) : IClienteService
     {
         public async Task<IReadOnlyList<ClienteTableDto>> GetAllAsync()
         {
             var clientes = await repo.GetAllAsync();
+            var ventas = await ventaRepo.GetAllAsync();
+
+            var conteoVentasPorCliente = ventas
+                .GroupBy(v => v.ClienteId)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             return clientes.Select(cliente => new ClienteTableDto
             {
@@ -18,7 +25,9 @@ namespace Ferreteria.Services
                 Cedula = cliente.Cedula,
                 Telefono = cliente.Telefono,
                 Correo = cliente.Correo,
-                Direccion = cliente.Direccion
+                Direccion = cliente.Direccion,
+                FechaRegistro = cliente.FechaRegistro,
+                TotalVentas = conteoVentasPorCliente.GetValueOrDefault(cliente.Id, 0)
             }).ToList();
         }
 

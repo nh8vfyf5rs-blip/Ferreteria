@@ -46,9 +46,20 @@ namespace Ferreteria.Repositorios
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        public async  Task<bool> UpdateAsync(Producto producto)
+        public async Task<bool> UpdateAsync(Producto producto)
         {
-            context.Productos.Update(producto);
+            var existente = await context.Productos.FindAsync(producto.Id);
+            if (existente == null)
+                return false;
+
+            existente.Codigo = producto.Codigo;
+            existente.Nombre = producto.Nombre;
+            existente.Descripcion = producto.Descripcion;
+            existente.PrecioCompra = producto.PrecioCompra;
+            existente.PrecioVenta = producto.PrecioVenta;
+            existente.CategoriaId = producto.CategoriaId;
+            existente.MarcaId = producto.MarcaId;
+
             await context.SaveChangesAsync();
             return true;
         }

@@ -23,7 +23,9 @@ namespace Ferreteria.Services
                 Correo = e.Correo,
                 Direccion = e.Direccion,
                 FechaContratacion = e.FechaContratacion,
-                Salario = e.Salario
+                Salario = e.Salario,
+                CargoNombre = e.Cargo?.Name ?? string.Empty,
+                SucursalNombre = e.Sucursal?.Name ?? string.Empty
             }).ToList();
         }
 
