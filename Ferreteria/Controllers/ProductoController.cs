@@ -9,6 +9,7 @@ namespace Ferreteria.Controllers
     public class ProductoController(
         IProductoService _productoService,
         ICategoriaService _categoriaService,
+        IProveedorService _proveedorService,
         IMarcaService _marcaService,
         IAlmacenService _almacenService) : Controller
     {
@@ -60,7 +61,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "producto.crear")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateProductoDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateProductoDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new
@@ -83,7 +84,7 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "producto.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> Update(int id, UpdateProductoDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateProductoDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(new
@@ -123,18 +124,14 @@ namespace Ferreteria.Controllers
         private async Task CargarListasAsync()
         {
             var categorias = await _categoriaService.GetAllAsync();
+            var proveedores = await _proveedorService.GetAllAsync();
             var marcas = await _marcaService.GetAllAsync();
             var almacenes = await _almacenService.GetAllAsync();
 
-            ViewBag.Categorias = new SelectList(
-                categorias, "Id", "Nombre");
-
-            ViewBag.Marcas = new SelectList(
-                marcas, "Id", "Name");
-
-            ViewBag.Almacenes = new SelectList(
-                almacenes, "Id", "Name");
+            ViewBag.Categorias = new SelectList(categorias, "Id", "Name");
+            ViewBag.Proveedores = new SelectList(proveedores, "Id", "NombreEmpresa");
+            ViewBag.Marcas = new SelectList(marcas, "Id", "Name");
+            ViewBag.Almacenes = new SelectList(almacenes, "Id", "Name");
         }
     }
 }
-

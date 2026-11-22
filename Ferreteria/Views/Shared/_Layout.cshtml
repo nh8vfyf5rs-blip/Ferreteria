@@ -4,105 +4,80 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Ferretería</title>
-
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Ferreteria.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
-
 <body>
-    <div class="app-container">
-        <div class="app-container"> 
-  <!-- Menú lateral -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <div class="brand-icon">🔨</div>
+    <div class="admin-shell">
+        <div class="admin-backdrop" id="sidebarBackdrop"></div>
+
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="d-flex justify-content-between align-items-center px-2 mb-3">
                 <div>
-                    <h4>Ferretería</h4>
-                    <small>Sistema de gestión</small>
+                    <div class="fw-semibold">Fierro Nic</div>
+                    <div class="small text-white-50">Ferretería</div>
                 </div>
+                <button type="button" class="btn btn-sm btn-outline-light d-lg-none" id="btnCerrarSidebar" aria-label="Cerrar menú">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-
-            <div class="sidebar-menu">
-                <p class="menu-title">MENÚ PRINCIPAL</p>
-
-                <a class="menu-link active"
-                   asp-controller="Home" asp-action="Index">
-                    <span>▦</span> Dashboard
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>📦</span> Productos
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>👥</span> Clientes
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>🛒</span> Ventas
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>🧾</span> Compras
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>🏬</span> Inventario
-                </a>
-
-                <a class="menu-link" href="#">
-                    <span>📊</span> Reportes
-                </a>
-
-                <p class="menu-title menu-separator">CONFIGURACIÓN</p>
-
-                <a class="menu-link" href="#">
-                    <span>⚙</span> Configuración
-                </a>
-            </div>
-
-            <div class="sidebar-footer">
-                <span>●</span> Sistema Ferretería
-            </div>
+            <ul class="nav flex-column">
+                @await Component.InvokeAsync("Navigation")
+            </ul>
         </aside>
 
-        <!-- Contenido principal -->
-        <div class="main-container">
-
-            <header class="topbar">
-                <div>
-                    <h5>@ViewData["Title"]</h5>
-                    <small>Panel de administración</small>
+        <div class="admin-main-wrapper">
+            <header class="admin-topbar">
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-secondary d-lg-none" id="btnToggleSidebar" aria-label="Abrir menú">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <span class="fw-semibold">@(ViewData["SucursalNombre"] ?? "Sucursal Centro")</span>
                 </div>
-
-                <div class="topbar-user">
-                    <span class="notification-icon">🔔</span>
-                    <div class="user-avatar">A</div>
-                    <div>
-                        <strong>Administrador</strong>
-                        <small>Usuario del sistema</small>
-                    </div>
+                <div class="small text-muted">
+                    @ViewData["Title"]
                 </div>
             </header>
 
-            <main class="main-content">
+            <main class="admin-content">
                 @RenderBody()
             </main>
-
-            <footer class="app-footer">
-                Ferretería - Tu aliado en cada proyecto.
-                <span>© 2026</span>
-            </footer>
-
         </div>
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('adminSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const btnOpen = document.getElementById('btnToggleSidebar');
+            const btnClose = document.getElementById('btnCerrarSidebar');
 
+            const openMenu = () => {
+                sidebar?.classList.add('is-open');
+                backdrop?.classList.add('is-visible');
+            };
+
+            const closeMenu = () => {
+                sidebar?.classList.remove('is-open');
+                backdrop?.classList.remove('is-visible');
+            };
+
+            btnOpen?.addEventListener('click', openMenu);
+            btnClose?.addEventListener('click', closeMenu);
+            backdrop?.addEventListener('click', closeMenu);
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-

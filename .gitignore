@@ -359,5 +359,9 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
+# Entity Framework Core migrations
+Migrations/
+**/Migrations/
+
 # Fody - auto-generated XML schema
 FodyWeavers.xsd

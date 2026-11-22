@@ -7,7 +7,7 @@ namespace Ferreteria.Helpers
     {
      public static IReadOnlyList<string> FromUser(Usuario usuario)
         {
-            var fromRole = usuario.Rol?.RolPermisos?
+            var fromRole = usuario.Rol?.RolPermiso?
                 .Select(rp => rp.Permiso.Name)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 

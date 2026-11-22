@@ -16,14 +16,16 @@ namespace Ferreteria.Services
             return empleados.Select(e => new EmpleadoTableDto
             {
                 Id = e.Id,
-                Nombre = e.Nombres,
+                Nombres = e.Nombres,
                 Apellidos = e.Apellidos,
                 Cedula = e.Cedula,
                 Telefono = e.Telefono,
                 Correo = e.Correo,
                 Direccion = e.Direccion,
                 FechaContratacion = e.FechaContratacion,
-                Salario = e.Salario
+                Salario = e.Salario,
+                CargoNombre = e.Cargo?.Name ?? string.Empty,
+                SucursalNombre = e.Sucursal?.Name ?? string.Empty
             }).ToList();
         }
 
@@ -37,7 +39,7 @@ namespace Ferreteria.Services
             return new EmpleadoDto
             {
                 Id = empleado.Id,
-                Nombre = empleado.Nombres,
+                Nombres = empleado.Nombres,
                 Apellidos = empleado.Apellidos,
                 Cedula = empleado.Cedula,
                 Telefono = empleado.Telefono,

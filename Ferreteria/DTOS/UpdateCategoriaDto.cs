@@ -13,4 +13,3 @@ namespace Ferreteria.DTOS
         public string Descripcion { get; set; } = string.Empty;
     }
 }
-//

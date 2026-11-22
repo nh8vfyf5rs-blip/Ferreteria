@@ -8,7 +8,9 @@
         public string Telefono { get; set; } = string.Empty;
         public string Correo { get; set; } = string.Empty;
         public string Direccion { get; set; } = string.Empty;
-        public DateTime FechaContratacion { get; set; } = DateTime.Now;
+        public DateTime FechaContratacion { get; set; }
         public decimal Salario { get; set; }
+        public int CargoId { get; set; }
+        public int SucursalId { get; set; }
     }
 }

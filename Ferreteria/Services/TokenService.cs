@@ -5,6 +5,7 @@ using System.Text;
 using Ferreteria.Extensions;
 using Ferreteria.Helpers;
 using Ferreteria.Models;
+using Ferreteria.Models.Segurudad;
 using Ferreteria.Models.Setting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

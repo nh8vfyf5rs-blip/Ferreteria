@@ -14,7 +14,7 @@
         public virtual Marca Marca { get; set; }=null!;
 
         public virtual ICollection<DetalleVenta> DetalleVentas { get; set; } = [];
-        public virtual ICollection<DetalleCompra> DetalleCompras { get; } = [];
+        public virtual ICollection<DetalleCompra> DetalleCompras { get; set; } = [];
         public virtual ICollection<DetalleInventario> DetalleInventarios { get; set; } = [];
     }
 }

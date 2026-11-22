@@ -13,7 +13,8 @@ namespace Ferreteria.Services
             return categorias.Select(c => new CategoriaTableDto
             {
                 Id = c.Id,
-                Nombre = c.Name
+                Name = c.Name,
+                TotalProductos = c.Productos?.Count ?? 0
             }).ToList();
         }
 

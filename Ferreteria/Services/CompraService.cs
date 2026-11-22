@@ -2,6 +2,7 @@
 using Ferreteria.DTOS;
 using Ferreteria.Models;
 using Ferreteria.Repositorios;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Services
 {
@@ -12,7 +13,8 @@ namespace Ferreteria.Services
         IAlmacenRepository repoAlmacen,
         IProductoRepository repoProducto,
         IInventarioRepository repoInventario,
-        IMovimientoInventarioRepository repoMovimiento) : ICompraService
+        IDetalleInventarioRepository repoDetalle,
+        AppDbContext context) : ICompraService
     {
         public async Task<IReadOnlyList<CompraTableDto>> GetAllAsync()
         {
@@ -24,9 +26,11 @@ namespace Ferreteria.Services
                 FechaCompra = c.FechaCompra,
                 Total = c.Total,
                 ProveedorId = c.ProveedorId,
-                ProveedorNombre = c.Proveedor.NombreEmpresa,
+                ProveedorNombre = c.Proveedor?.NombreEmpresa ?? string.Empty,
                 EmpleadoId = c.EmpleadoId,
-                EmpleadoNombre = $"{c.Empleado.Nombres} {c.Empleado.Apellidos}"
+                EmpleadoNombre = $"{c.Empleado?.Nombres} {c.Empleado?.Apellidos}".Trim(),
+                AlmacenNombre = c.Almacen?.Name ?? string.Empty,
+                SucursalNombre = c.Almacen?.Sucursal?.Name ?? string.Empty
             }).ToList();
         }
 
@@ -63,8 +67,15 @@ namespace Ferreteria.Services
             if (await repoEmpleado.GetByIdAsync(dto.EmpleadoId) == null)
                 return (false, "El empleado seleccionado no existe");
 
-            if (await repoAlmacen.GetByIdAsync(dto.AlmacenId) == null)
+            var almacen = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == dto.AlmacenId);
+
+            if (almacen == null)
                 return (false, "El almacén seleccionado no existe");
+
+            if (almacen.SucursalId <= 0)
+                return (false, "El almacén seleccionado no tiene una sucursal válida asignada");
 
             if (dto.DetalleCompraDtos == null || dto.DetalleCompraDtos.Count == 0)
                 return (false, "Debe agregar al menos un producto a la compra");
@@ -103,42 +114,58 @@ namespace Ferreteria.Services
             if (compraCreada == null)
                 return (false, "No fue posible registrar la compra");
 
+            var inventarios = (await repoInventario.GetAllAsync()).ToList();
+
             foreach (var detalle in compraCreada.DetalleCompras)
             {
-                var inventarios = await repoInventario.GetAllAsync();
-
                 var inventario = inventarios.FirstOrDefault(i =>
                     i.ProductoId == detalle.ProductoId &&
                     i.AlmacenId == compraCreada.AlmacenId);
 
+                int stockAnterior;
+                int stockNuevo;
+
                 if (inventario == null)
                 {
+                    stockAnterior = 0;
+                    stockNuevo = detalle.CantidadRecibida;
+
                     inventario = await repoInventario.CreateAsync(new Inventario
                     {
+                        SucursalId = almacen.SucursalId,
                         ProductoId = detalle.ProductoId,
                         AlmacenId = compraCreada.AlmacenId,
-                        Stock = detalle.CantidadRecibida,
+                        Stock = stockNuevo,
                         FechaActualizacion = DateTime.Now
                     });
 
                     if (inventario == null)
                         return (false, "La compra se registró, pero no fue posible crear el inventario");
+
+                    inventarios.Add(inventario);
                 }
                 else
                 {
-                    inventario.Stock += detalle.CantidadRecibida;
+                    stockAnterior = inventario.Stock;
+                    stockNuevo = stockAnterior + detalle.CantidadRecibida;
+
+                    if (inventario.SucursalId <= 0)
+                        inventario.SucursalId = almacen.SucursalId;
+
+                    inventario.Stock = stockNuevo;
                     inventario.FechaActualizacion = DateTime.Now;
 
                     await repoInventario.UpdateAsync(inventario);
                 }
 
-                await repoMovimiento.CreateAsync(new MovimientoInventario
+                await repoDetalle.CreateAsync(new DetalleInventario
                 {
-                    TipoMovimiento = "Entrada por compra",
-                    Cantidad = detalle.CantidadRecibida,
-                    Fecha = DateTime.Now,
-                    Observacion = $"Compra #{compraCreada.Id}",
-                    InventarioId = inventario.Id
+                    InventarioId = inventario.Id,
+                    SucursalId = almacen.SucursalId,
+                    StockAnterior = stockAnterior,
+                    StockNuevo = stockNuevo,
+                    FechaRegistro = DateTime.Now,
+                    Observacion = $"Entrada por compra #{compraCreada.Id}"
                 });
             }
 
@@ -159,8 +186,19 @@ namespace Ferreteria.Services
             if (await repoEmpleado.GetByIdAsync(dto.EmpleadoId) == null)
                 return (false, "El empleado seleccionado no existe");
 
-            if (await repoAlmacen.GetByIdAsync(dto.AlmacenId) == null)
+            var almacenAnterior = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == compra.AlmacenId);
+
+            var almacenNuevo = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == dto.AlmacenId);
+
+            if (almacenNuevo == null)
                 return (false, "El almacén seleccionado no existe");
+
+            if (almacenNuevo.SucursalId <= 0)
+                return (false, "El almacén seleccionado no tiene una sucursal válida asignada");
 
             if (compra.AlmacenId != dto.AlmacenId)
             {
@@ -173,7 +211,7 @@ namespace Ferreteria.Services
                     })
                     .ToList();
 
-                var inventarios = await repoInventario.GetAllAsync();
+                var inventarios = (await repoInventario.GetAllAsync()).ToList();
 
                 foreach (var detalle in detallesAgrupados)
                 {
@@ -195,52 +233,72 @@ namespace Ferreteria.Services
                         i.ProductoId == detalle.ProductoId &&
                         i.AlmacenId == compra.AlmacenId);
 
-                    inventarioAnterior.Stock -= detalle.Cantidad;
+                    int stockAnteriorOrigen = inventarioAnterior.Stock;
+                    int stockNuevoOrigen = stockAnteriorOrigen - detalle.Cantidad;
+
+                    inventarioAnterior.Stock = stockNuevoOrigen;
                     inventarioAnterior.FechaActualizacion = DateTime.Now;
 
                     await repoInventario.UpdateAsync(inventarioAnterior);
 
-                    await repoMovimiento.CreateAsync(new MovimientoInventario
+                    await repoDetalle.CreateAsync(new DetalleInventario
                     {
-                        TipoMovimiento = "Salida por cambio de almacén",
-                        Cantidad = detalle.Cantidad,
-                        Fecha = DateTime.Now,
-                        Observacion = $"Compra #{compra.Id}",
-                        InventarioId = inventarioAnterior.Id
+                        InventarioId = inventarioAnterior.Id,
+                        SucursalId = almacenAnterior?.SucursalId ?? 0,
+                        StockAnterior = stockAnteriorOrigen,
+                        StockNuevo = stockNuevoOrigen,
+                        FechaRegistro = DateTime.Now,
+                        Observacion = $"Salida por cambio de almacén en compra #{compra.Id}"
                     });
 
                     var inventarioNuevo = inventarios.FirstOrDefault(i =>
                         i.ProductoId == detalle.ProductoId &&
                         i.AlmacenId == dto.AlmacenId);
 
+                    int stockAnteriorDestino;
+                    int stockNuevoDestino;
+
                     if (inventarioNuevo == null)
                     {
+                        stockAnteriorDestino = 0;
+                        stockNuevoDestino = detalle.Cantidad;
+
                         inventarioNuevo = await repoInventario.CreateAsync(new Inventario
                         {
+                            SucursalId = almacenNuevo.SucursalId,
                             ProductoId = detalle.ProductoId,
                             AlmacenId = dto.AlmacenId,
-                            Stock = detalle.Cantidad,
+                            Stock = stockNuevoDestino,
                             FechaActualizacion = DateTime.Now
                         });
 
                         if (inventarioNuevo == null)
                             return (false, "No fue posible crear el inventario en el nuevo almacén");
+
+                        inventarios.Add(inventarioNuevo);
                     }
                     else
                     {
-                        inventarioNuevo.Stock += detalle.Cantidad;
+                        stockAnteriorDestino = inventarioNuevo.Stock;
+                        stockNuevoDestino = stockAnteriorDestino + detalle.Cantidad;
+
+                        if (inventarioNuevo.SucursalId <= 0)
+                            inventarioNuevo.SucursalId = almacenNuevo.SucursalId;
+
+                        inventarioNuevo.Stock = stockNuevoDestino;
                         inventarioNuevo.FechaActualizacion = DateTime.Now;
 
                         await repoInventario.UpdateAsync(inventarioNuevo);
                     }
 
-                    await repoMovimiento.CreateAsync(new MovimientoInventario
+                    await repoDetalle.CreateAsync(new DetalleInventario
                     {
-                        TipoMovimiento = "Entrada por cambio de almacén",
-                        Cantidad = detalle.Cantidad,
-                        Fecha = DateTime.Now,
-                        Observacion = $"Compra #{compra.Id}",
-                        InventarioId = inventarioNuevo.Id
+                        InventarioId = inventarioNuevo.Id,
+                        SucursalId = almacenNuevo.SucursalId,
+                        StockAnterior = stockAnteriorDestino,
+                        StockNuevo = stockNuevoDestino,
+                        FechaRegistro = DateTime.Now,
+                        Observacion = $"Entrada por cambio de almacén en compra #{compra.Id}"
                     });
                 }
             }
@@ -261,6 +319,10 @@ namespace Ferreteria.Services
             if (compra == null)
                 return (false, "Compra no encontrada");
 
+            var almacen = await context.Almacenes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == compra.AlmacenId);
+
             var detallesAgrupados = compra.DetalleCompras
                 .GroupBy(d => d.ProductoId)
                 .Select(g => new
@@ -270,7 +332,7 @@ namespace Ferreteria.Services
                 })
                 .ToList();
 
-            var inventarios = await repoInventario.GetAllAsync();
+            var inventarios = (await repoInventario.GetAllAsync()).ToList();
 
             foreach (var detalle in detallesAgrupados)
             {
@@ -291,18 +353,22 @@ namespace Ferreteria.Services
                     i.ProductoId == detalle.ProductoId &&
                     i.AlmacenId == compra.AlmacenId);
 
-                inventario.Stock -= detalle.Cantidad;
+                int stockAnterior = inventario.Stock;
+                int stockNuevo = stockAnterior - detalle.Cantidad;
+
+                inventario.Stock = stockNuevo;
                 inventario.FechaActualizacion = DateTime.Now;
 
                 await repoInventario.UpdateAsync(inventario);
 
-                await repoMovimiento.CreateAsync(new MovimientoInventario
+                await repoDetalle.CreateAsync(new DetalleInventario
                 {
-                    TipoMovimiento = "Salida por eliminación de compra",
-                    Cantidad = detalle.Cantidad,
-                    Fecha = DateTime.Now,
-                    Observacion = $"Eliminación de compra #{compra.Id}",
-                    InventarioId = inventario.Id
+                    InventarioId = inventario.Id,
+                    SucursalId = almacen?.SucursalId ?? 0,
+                    StockAnterior = stockAnterior,
+                    StockNuevo = stockNuevo,
+                    FechaRegistro = DateTime.Now,
+                    Observacion = $"Eliminación de compra #{compra.Id}"
                 });
             }
 

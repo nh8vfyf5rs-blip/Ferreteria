@@ -1,0 +1,154 @@
+﻿@model IReadOnlyList<string>
+@{
+    var permisos = Model ?? Array.Empty<string>();
+    bool Has(string p) => permisos.Any(x => string.Equals(x, p, StringComparison.OrdinalIgnoreCase));
+    bool HasAny(params string[] perms) => perms.Any(Has);
+
+    var esGerente = User?.IsInRole("Gerente") == true
+        || User?.Claims.Any(c =>
+            (c.Type.EndsWith("/role", StringComparison.OrdinalIgnoreCase) || c.Type.Equals("role", StringComparison.OrdinalIgnoreCase))
+            && string.Equals(c.Value, "Gerente", StringComparison.OrdinalIgnoreCase)) == true;
+}
+
+<li class="nav-item">
+    <a class="nav-link" asp-controller="Home" asp-action="Index">
+        <i class="fa-solid fa-gauge me-1"></i> Dashboard
+    </a>
+</li>
+
+@if (HasAny("producto.ver", "producto.crear", "producto.actualizar", "producto.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Producto" asp-action="Index">
+            <i class="fa-solid fa-box me-1"></i> Productos
+        </a>
+    </li>
+}
+@if (HasAny("categoria.ver", "categoria.crear", "categoria.actualizar", "categoria.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Categoria" asp-action="Index">
+            <i class="fa-solid fa-tag me-1"></i> Categorías
+        </a>
+    </li>
+}
+@if (HasAny("proveedor.ver", "proveedor.crear", "proveedor.actualizar", "proveedor.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Proveedor" asp-action="Index">
+            <i class="fa-solid fa-truck me-1"></i> Proveedores
+        </a>
+    </li>
+}
+@if (HasAny("cliente.ver", "cliente.crear", "cliente.actualizar", "cliente.borrar", "cliente.gestionar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Cliente" asp-action="Index">
+            <i class="fa-solid fa-users me-1"></i> Clientes
+        </a>
+    </li>
+}
+@if (HasAny("empleado.ver", "empleado.crear", "empleado.actualizar", "empleado.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Empleado" asp-action="Index">
+            <i class="fa-solid fa-id-badge me-1"></i> Empleados
+        </a>
+    </li>
+}
+@if (HasAny("venta.ver", "venta.crear", "venta.actualizar", "venta.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Venta" asp-action="Index">
+            <i class="fa-solid fa-cart-shopping me-1"></i> Ventas
+        </a>
+    </li>
+}
+@if (HasAny("devolucion.ver", "devolucion.crear", "devolucion.actualizar", "devolucion.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Devoluciones" asp-action="Index">
+            <i class="fa-solid fa-rotate-left me-1"></i> Devoluciones
+        </a>
+    </li>
+}
+@if (HasAny("compra.ver", "compra.crear", "compra.actualizar", "compra.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Compra" asp-action="Index">
+            <i class="fa-solid fa-bag-shopping me-1"></i> Compras
+        </a>
+    </li>
+}
+@if (HasAny("inventario.ver", "inventario.crear", "inventario.actualizar", "inventario.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Inventario" asp-action="Index">
+            <i class="fa-solid fa-boxes-stacked me-1"></i> Inventario
+        </a>
+    </li>
+}
+@if (HasAny("almacen.ver", "almacen.crear", "almacen.actualizar", "almacen.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Almacen" asp-action="Index">
+            <i class="fa-solid fa-warehouse me-1"></i> Almacenes
+        </a>
+    </li>
+}
+@if (HasAny("sucursal.ver", "sucursal.crear", "sucursal.actualizar", "sucursal.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Sucursal" asp-action="Index">
+            <i class="fa-solid fa-store me-1"></i> Sucursales
+        </a>
+    </li>
+}
+@if (HasAny("metodopago.ver", "metodopago.crear", "metodopago.actualizar", "metodopago.borrar"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="MetodoPago" asp-action="Index">
+            <i class="fa-solid fa-credit-card me-1"></i> Métodos de Pago
+        </a>
+    </li>
+}
+@if (HasAny("usuario.ver", "usuario.asignar", "usuario.cambiar_rol"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Admin" asp-action="Users">
+            <i class="fa-solid fa-user-gear me-1"></i> Usuarios
+        </a>
+    </li>
+}
+@if (!esGerente && Has("admin.panel"))
+{
+    <li class="nav-item">
+        <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">
+            <i class="fa-solid fa-shield-halved me-1"></i> Panel Administrativo
+        </a>
+    </li>
+}
+
+@if (User?.Identity?.IsAuthenticated == true)
+{
+    <li class="nav-item mt-3 pt-2 border-top border-secondary">
+        <button type="button" id="btnLogout" class="nav-link w-100 text-start border-0 bg-transparent text-danger">
+            <i class="fa-solid fa-right-from-bracket me-1"></i> Cerrar sesión
+        </button>
+    </li>
+
+    <script>
+        document.getElementById("btnLogout")?.addEventListener("click", async function () {
+            const response = await fetch("/Auth/Logout", {
+                method: "POST"
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = "/Auth/Login";
+                }
+            }
+        });
+    </script>
+}

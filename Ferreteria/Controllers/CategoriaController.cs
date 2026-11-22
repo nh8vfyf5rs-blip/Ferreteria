@@ -35,14 +35,23 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "categoria.crear")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateCategoriaDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateCategoriaDto dto)
         {
             if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .Select(x => $"{x.Key}: {string.Join(", ", x.Value!.Errors.Select(e => e.ErrorMessage))}")
+                    .ToList();
+
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Error en los datos a guardar"
+                    message = "Error en los datos a guardar",
+                    errorMessage = string.Join(" | ", errors),
+                    errors
                 });
+            }
 
             var (success, errorMessage) = await _categoriaService.CreateAsync(dto);
 
@@ -50,17 +59,25 @@ namespace Ferreteria.Controllers
                 ? Ok(new { success = true, message = "Categoría creada satisfactoriamente" })
                 : BadRequest(new { success = false, errorMessage });
         }
-
         [Authorize(Policy = "categoria.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> Update(UpdateCategoriaDto dto)
+        public async Task<IActionResult> Update([FromBody] UpdateCategoriaDto dto)
         {
             if (!ModelState.IsValid)
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .Select(x => $"{x.Key}: {string.Join(", ", x.Value!.Errors.Select(e => e.ErrorMessage))}")
+                    .ToList();
+
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Error en los datos a guardar"
+                    message = "Error en los datos a guardar",
+                    errorMessage = string.Join(" | ", errors),
+                    errors
                 });
+            }
 
             var (success, errorMessage) = await _categoriaService.UpdateAsync(dto);
 

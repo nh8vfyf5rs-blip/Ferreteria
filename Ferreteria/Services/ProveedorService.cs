@@ -17,7 +17,8 @@ namespace Ferreteria.Services
                 Contacto = proveedor.Contacto,
                 Correo = proveedor.Correo,
                 Direccion = proveedor.Direccion,
-                FechaRegistro = proveedor.FechaRegistro
+                FechaRegistro = proveedor.FechaRegistro,
+                TotalCompras = proveedor.Compras?.Count ?? 0
             }).ToList();
         }
 
@@ -44,18 +45,19 @@ namespace Ferreteria.Services
             if (string.IsNullOrWhiteSpace(dto.NombreEmpresa))
                 return (false, "El nombre de la empresa es obligatorio");
 
+            string nombreNormalizado = dto.NombreEmpresa.Trim();
             var proveedores = await proveedorRepository.GetAllAsync();
 
             if (proveedores.Any(p =>
-                p.NombreEmpresa.Equals(dto.NombreEmpresa.Trim(), StringComparison.OrdinalIgnoreCase)))
+                p.NombreEmpresa.Equals(nombreNormalizado, StringComparison.OrdinalIgnoreCase)))
                 return (false, "Ya existe un proveedor con ese nombre de empresa");
 
             var proveedor = new Proveedor
             {
-                NombreEmpresa = dto.NombreEmpresa.Trim(),
-                Contacto = dto.Contacto.Trim(),
-                Correo = dto.Correo.Trim(),
-                Direccion = dto.Direccion.Trim(),
+                NombreEmpresa = nombreNormalizado,
+                Contacto = dto.Contacto?.Trim() ?? string.Empty,
+                Correo = dto.Correo?.Trim() ?? string.Empty,
+                Direccion = dto.Direccion?.Trim() ?? string.Empty,
                 FechaRegistro = DateTime.Now
             };
 
@@ -77,17 +79,18 @@ namespace Ferreteria.Services
             if (string.IsNullOrWhiteSpace(dto.NombreEmpresa))
                 return (false, "El nombre de la empresa es obligatorio");
 
+            string nombreNormalizado = dto.NombreEmpresa.Trim();
             var proveedores = await proveedorRepository.GetAllAsync();
 
             if (proveedores.Any(p =>
                 p.Id != id &&
-                p.NombreEmpresa.Equals(dto.NombreEmpresa.Trim(), StringComparison.OrdinalIgnoreCase)))
+                p.NombreEmpresa.Equals(nombreNormalizado, StringComparison.OrdinalIgnoreCase)))
                 return (false, "Ya existe otro proveedor con ese nombre de empresa");
 
-            proveedor.NombreEmpresa = dto.NombreEmpresa.Trim();
-            proveedor.Contacto = dto.Contacto.Trim();
-            proveedor.Correo = dto.Correo.Trim();
-            proveedor.Direccion = dto.Direccion.Trim();
+            proveedor.NombreEmpresa = nombreNormalizado;
+            proveedor.Contacto = dto.Contacto?.Trim() ?? string.Empty;
+            proveedor.Correo = dto.Correo?.Trim() ?? string.Empty;
+            proveedor.Direccion = dto.Direccion?.Trim() ?? string.Empty;
 
             var resultado = await proveedorRepository.UpdateAsync(proveedor);
 
@@ -104,7 +107,7 @@ namespace Ferreteria.Services
             if (proveedor == null)
                 return (false, "Proveedor no encontrado");
 
-            if (proveedor.Compras.Any())
+            if (proveedor.Compras?.Any() == true)
                 return (false, "No se puede eliminar el proveedor porque tiene compras asociadas");
 
             var resultado = await proveedorRepository.DeleteAsync(id);

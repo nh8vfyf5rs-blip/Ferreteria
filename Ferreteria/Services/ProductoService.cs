@@ -1,6 +1,7 @@
 ﻿using Ferreteria.DTOS;
 using Ferreteria.Models;
 using Ferreteria.Repositorios;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ferreteria.Services
 {
@@ -15,7 +16,6 @@ namespace Ferreteria.Services
         public async Task<IReadOnlyList<ProductoTableDto>> GetAllAsync()
         {
             var productos = await productoRepository.GetAllAsync();
-            var inventarios = await inventarioRepository.GetAllAsync();
 
             return productos.Select(producto => new ProductoTableDto
             {
@@ -23,20 +23,13 @@ namespace Ferreteria.Services
                 Codigo = producto.Codigo,
                 Nombre = producto.Nombre,
                 Descripcion = producto.Descripcion,
-                Precio = producto.PrecioVenta ?? 0,
                 PrecioCompra = producto.PrecioCompra,
                 PrecioVenta = producto.PrecioVenta,
-                Stock = inventarios
-                    .Where(i => i.ProductoId == producto.Id)
-                    .Sum(i => i.Stock),
-                CategoriaId = producto.CategoriaId,
-                CategoriaNombre = producto.Categoria.Name,
-                MarcaId = producto.MarcaId,
-                MarcaNombre = producto.Marca.Name
+                CategoriaNombre = producto.Categoria?.Name ?? string.Empty,
+                MarcaNombre = producto.Marca?.Name ?? string.Empty
             }).ToList();
         }
 
-        // Consulta compatible: devuelve el stock total de todos los almacenes.
         public async Task<ProductoDto?> GetByIdAsync(int id)
         {
             var producto = await productoRepository.GetByIdAsync(id);
@@ -49,25 +42,17 @@ namespace Ferreteria.Services
             return new ProductoDto
             {
                 Id = producto.Id,
-                Codigo = producto.Codigo,
                 Nombre = producto.Nombre,
                 Descripcion = producto.Descripcion,
-                Precio = producto.PrecioVenta ?? 0,
-                PrecioCompra = producto.PrecioCompra,
-                PrecioVenta = producto.PrecioVenta,
+                Precio = producto.PrecioVenta ?? producto.PrecioCompra,
                 Stock = inventarios
                     .Where(i => i.ProductoId == producto.Id)
                     .Sum(i => i.Stock),
                 CategoriaId = producto.CategoriaId,
-                MarcaId = producto.MarcaId,
-
-                // Se conserva por compatibilidad.
-                // Producto no tiene una relación directa con Proveedor.
                 ProveedorId = 0
             };
         }
 
-        // Nueva consulta: devuelve el stock del almacén seleccionado.
         public async Task<ProductoDto?> GetByIdAsync(int id, int almacenId)
         {
             var producto = await productoRepository.GetByIdAsync(id);
@@ -89,19 +74,11 @@ namespace Ferreteria.Services
             return new ProductoDto
             {
                 Id = producto.Id,
-                Codigo = producto.Codigo,
                 Nombre = producto.Nombre,
                 Descripcion = producto.Descripcion,
-                Precio = producto.PrecioVenta ?? 0,
-                PrecioCompra = producto.PrecioCompra,
-                PrecioVenta = producto.PrecioVenta,
+                Precio = producto.PrecioVenta ?? producto.PrecioCompra,
                 Stock = inventario?.Stock ?? 0,
-                AlmacenId = almacenId,
                 CategoriaId = producto.CategoriaId,
-                MarcaId = producto.MarcaId,
-
-                // Se conserva por compatibilidad.
-                // Producto no tiene una relación directa con Proveedor.
                 ProveedorId = 0
             };
         }
@@ -109,38 +86,31 @@ namespace Ferreteria.Services
         public async Task<(bool Success, string? ErrorMessage)> CreateAsync(
             CreateProductoDto dto)
         {
-            var productos = await productoRepository.GetAllAsync();
-
-            if (productos.Any(p =>
-                p.Codigo.Equals(dto.Codigo, StringComparison.OrdinalIgnoreCase)))
-            {
-                return (false, "Ya existe un producto con ese código.");
-            }
-
             var categoria = await categoriaRepository.GetByIdAsync(dto.CategoriaId);
-
             if (categoria == null)
                 return (false, "La categoría seleccionada no existe.");
 
-            var marca = await marcaRepository.GetByIdAsync(dto.MarcaId);
-
+            var marcas = await marcaRepository.GetAllAsync();
+            var marca = marcas.FirstOrDefault();
             if (marca == null)
-                return (false, "La marca seleccionada no existe.");
+                return (false, "No hay ninguna marca registrada en el sistema.");
 
-            var almacen = await almacenRepository.GetByIdAsync(dto.AlmacenId);
-
+            var almacenes = await almacenRepository.GetAllAsync();
+            var almacen = almacenes.FirstOrDefault();
             if (almacen == null)
-                return (false, "El almacén seleccionado no existe.");
+                return (false, "No hay ningún almacén registrado en el sistema.");
+
+            var codigoGenerado = await GenerarCodigoUnicoAsync(dto.Nombre);
 
             var producto = new Producto
             {
-                Codigo = dto.Codigo,
+                Codigo = codigoGenerado,
                 Nombre = dto.Nombre,
                 Descripcion = dto.Descripcion,
-                PrecioCompra = dto.PrecioCompra,
-                PrecioVenta = dto.PrecioVenta ?? dto.Precio,
+                PrecioCompra = dto.Precio,
+                PrecioVenta = dto.Precio,
                 CategoriaId = dto.CategoriaId,
-                MarcaId = dto.MarcaId
+                MarcaId = marca.Id
             };
 
             var productoCreado = await productoRepository.CreateAsync(producto);
@@ -148,12 +118,10 @@ namespace Ferreteria.Services
             if (productoCreado == null)
                 return (false, "No se pudo crear el producto.");
 
-            // El inventario se registra mediante InventarioService
-            // para generar también su historial y movimiento.
             var inventarioDto = new CreateInventarioDTO
             {
                 ProductoId = productoCreado.Id,
-                AlmacenId = dto.AlmacenId,
+                AlmacenId = almacen.Id,
                 Stock = dto.Stock
             };
 
@@ -174,62 +142,44 @@ namespace Ferreteria.Services
             int id, UpdateProductoDto dto)
         {
             var producto = await productoRepository.GetByIdAsync(id);
-
             if (producto == null)
                 return (false, "El producto no existe.");
 
-            var productos = await productoRepository.GetAllAsync();
-
-            if (productos.Any(p =>
-                p.Id != id &&
-                p.Codigo.Equals(dto.Codigo, StringComparison.OrdinalIgnoreCase)))
-            {
-                return (false, "Ya existe otro producto con ese código.");
-            }
-
             var categoria = await categoriaRepository.GetByIdAsync(dto.CategoriaId);
-
             if (categoria == null)
                 return (false, "La categoría seleccionada no existe.");
 
-            var marca = await marcaRepository.GetByIdAsync(dto.MarcaId);
-
-            if (marca == null)
-                return (false, "La marca seleccionada no existe.");
-
-            var almacen = await almacenRepository.GetByIdAsync(dto.AlmacenId);
-
+            var almacenes = await almacenRepository.GetAllAsync();
+            var almacen = almacenes.FirstOrDefault();
             if (almacen == null)
-                return (false, "El almacén seleccionado no existe.");
+                return (false, "No hay ningún almacén registrado en el sistema.");
 
-            producto.Codigo = dto.Codigo;
             producto.Nombre = dto.Nombre;
             producto.Descripcion = dto.Descripcion;
-            producto.PrecioCompra = dto.PrecioCompra;
-            producto.PrecioVenta = dto.PrecioVenta ?? dto.Precio;
+            producto.PrecioVenta = dto.Precio;
             producto.CategoriaId = dto.CategoriaId;
-            producto.MarcaId = dto.MarcaId;
+
+            if (string.IsNullOrWhiteSpace(producto.Codigo))
+            {
+                producto.Codigo = await GenerarCodigoUnicoAsync(dto.Nombre);
+            }
 
             var actualizado = await productoRepository.UpdateAsync(producto);
 
             if (!actualizado)
                 return (false, "No se pudo actualizar el producto.");
 
-            // Buscamos el inventario correspondiente al producto
-            // y al almacén seleccionado.
             var inventarios = await inventarioRepository.GetAllAsync();
-
             var inventario = inventarios.FirstOrDefault(i =>
                 i.ProductoId == id &&
-                i.AlmacenId == dto.AlmacenId);
+                i.AlmacenId == almacen.Id);
 
             if (inventario == null)
             {
-                // Si no existe, se registra mediante InventarioService.
                 var inventarioDto = new CreateInventarioDTO
                 {
                     ProductoId = id,
-                    AlmacenId = dto.AlmacenId,
+                    AlmacenId = almacen.Id,
                     Stock = dto.Stock
                 };
 
@@ -245,12 +195,10 @@ namespace Ferreteria.Services
             }
             else
             {
-                // Si existe, se actualiza mediante InventarioService
-                // para conservar el historial y registrar el movimiento.
                 var inventarioDto = new UpdateInventarioDTO
                 {
                     ProductoId = id,
-                    AlmacenId = dto.AlmacenId,
+                    AlmacenId = almacen.Id,
                     Stock = dto.Stock
                 };
 
@@ -286,16 +234,51 @@ namespace Ferreteria.Services
                 return (false, "No se puede eliminar porque tiene movimientos de inventario asociados.");
 
             var inventarios = await inventarioRepository.GetAllAsync();
+            var inventariosProducto = inventarios.Where(i => i.ProductoId == id).ToList();
 
-            if (inventarios.Any(i => i.ProductoId == id))
-                return (false, "No se puede eliminar porque el producto tiene registros de inventario asociados.");
+            if (inventariosProducto.Any(i => i.Stock > 0))
+                return (false, "No se puede eliminar porque el producto aún tiene existencias en inventario.");
 
-            var eliminado = await productoRepository.DeleteAsync(id);
+            try
+            {
+                foreach (var inv in inventariosProducto)
+                {
+                    await inventarioRepository.DeleteAsync(inv.Id);
+                }
 
-            if (!eliminado)
-                return (false, "No se pudo eliminar el producto.");
+                var eliminado = await productoRepository.DeleteAsync(id);
 
-            return (true, null);
+                if (!eliminado)
+                    return (false, "No se pudo eliminar el producto.");
+
+                return (true, null);
+            }
+            catch (DbUpdateException)
+            {
+                return (false, "No se puede eliminar el producto porque tiene registros relacionados en el sistema.");
+            }
+        }
+
+        private async Task<string> GenerarCodigoUnicoAsync(string nombre)
+        {
+            var productos = await productoRepository.GetAllAsync();
+            var prefijo = new string((nombre ?? "PRD")
+                .Where(char.IsLetterOrDigit)
+                .Take(3)
+                .ToArray())
+                .ToUpperInvariant();
+
+            if (string.IsNullOrWhiteSpace(prefijo))
+                prefijo = "PRD";
+
+            string codigo;
+            do
+            {
+                codigo = $"{prefijo}-{Random.Shared.Next(1000, 9999)}";
+            } while (productos.Any(p =>
+                string.Equals(p.Codigo, codigo, StringComparison.OrdinalIgnoreCase)));
+
+            return codigo;
         }
     }
 }

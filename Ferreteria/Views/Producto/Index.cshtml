@@ -1,0 +1,113 @@
+﻿@using Ferreteria.Extensions
+@{
+    ViewData["Title"] = "Productos";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Productos</h1>
+        <p class="text-muted mb-0">Gestiona los productos con DataTable</p>
+    </div>
+    @if (User.HasPermission("producto.crear"))
+    {
+        <button type="button" class="btn btn-primary btn-sm" id="btnNuevoProducto">
+            <i class="fa-solid fa-plus me-1"></i> Nuevo Producto
+        </button>
+    }
+</div>
+
+<div class="card admin-card">
+    <div class="card-body">
+        <table id="productoTable" class="table table-striped table-hover w-100">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Marca</th>
+                    <th>P. Compra</th>
+                    <th>P. Venta</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@if (User.HasPermission("producto.crear") || User.HasPermission("producto.actualizar"))
+{
+    <div class="modal fade" id="productoModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productoModalTitle">Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="productoForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="Id" name="Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="Nombre">Nombre</label>
+                                <input type="text" id="Nombre" name="Nombre" class="form-control" maxlength="100" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label" for="Precio">Precio</label>
+                                <input type="number" step="0.01" min="0" id="Precio" name="Precio" class="form-control" />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label" for="Stock">Stock</label>
+                                <input type="number" min="0" id="Stock" name="Stock" class="form-control" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="CategoriaId">Categoría</label>
+                                <select id="CategoriaId" name="CategoriaId" asp-items="ViewBag.Categorias" class="form-select">
+                                    <option value="">-- Seleccione una categoría --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="ProveedorId">Proveedor</label>
+                                <select id="ProveedorId" name="ProveedorId" asp-items="ViewBag.Proveedores" class="form-select">
+                                    <option value="">-- Seleccione un proveedor --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="Descripcion">Descripción</label>
+                                <textarea id="Descripcion" name="Descripcion" class="form-control" rows="2" maxlength="250"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarProducto">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/just-validate@4.3.0/dist/just-validate.production.min.js"></script>
+    <script>
+        window.productosConfig = {
+            canUpdate: @User.HasPermission("producto.actualizar").ToString().ToLower(),
+            canDelete: @User.HasPermission("producto.borrar").ToString().ToLower()
+                };
+    </script>
+    <script src="~/js/producto.js" asp-append-version="true"></script>
+}

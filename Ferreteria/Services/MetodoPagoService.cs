@@ -13,7 +13,9 @@ namespace Ferreteria.Services
             return metodosPago.Select(m => new MetodoPagoTableDto
             {
                 Id = m.Id,
-                Name = m.Name
+                Name = m.Name,
+                CantidadPagos = m.DetallePagos?.Count ?? 0,
+                TotalPagos = m.DetallePagos?.Sum(dp => dp.Monto) ?? 0m
             }).ToList();
         }
 
@@ -27,19 +29,19 @@ namespace Ferreteria.Services
             return new MetodoPagoDto
             {
                 Id = metodoPago.Id,
-                Name = metodoPago.Name
+                Nombre = metodoPago.Name
             };
         }
 
         public async Task<(bool Success, string? ErrorMessage)> CreateAsync(
             CreateMetodoPagoDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Name))
+            if (string.IsNullOrWhiteSpace(dto.Nombre))
                 return (false, "El nombre del método de pago es obligatorio.");
 
             var metodoPago = new MetodoPago
             {
-                Name = dto.Name.Trim()
+                Name = dto.Nombre.Trim()
             };
 
             await repo.CreateAsync(metodoPago);
@@ -55,10 +57,10 @@ namespace Ferreteria.Services
             if (metodoPago == null)
                 return (false, "El método de pago no existe.");
 
-            if (string.IsNullOrWhiteSpace(dto.Name))
+            if (string.IsNullOrWhiteSpace(dto.Nombre))
                 return (false, "El nombre del método de pago es obligatorio.");
 
-            metodoPago.Name = dto.Name.Trim();
+            metodoPago.Name = dto.Nombre.Trim();
 
             await repo.UpdateAsync(metodoPago);
 
@@ -72,7 +74,7 @@ namespace Ferreteria.Services
             if (metodoPago == null)
                 return (false, "El método de pago no existe.");
 
-            if (metodoPago.DetallePagos.Any())
+            if (metodoPago.DetallePagos != null && metodoPago.DetallePagos.Any())
                 return (false, "No se puede eliminar el método de pago porque tiene detalles de pago asociados.");
 
             await repo.DeleteAsync(id);

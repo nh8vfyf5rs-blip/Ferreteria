@@ -16,10 +16,11 @@ namespace Ferreteria.Services
                 Id = s.Id,
                 Name = s.Name,
                 Direccion = s.Direccion,
-                Telefono = s.Telefono
+                Telefono = s.Telefono,
+                TotalAlmacenes = s.Almacenes?.Count ?? 0,
+                TotalEmppleados = s.Empleados?.Count ?? 0
             }).ToList();
         }
-
         public async Task<SucursalDto?> GetByIdAsync(int id)
         {
             var sucursal = await sucursalRepository.GetByIdAsync(id);

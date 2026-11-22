@@ -1,102 +1,69 @@
-﻿using System.Security.Claims;
-using Ferreteria.DTOS;
+﻿using Ferreteria.DTOS;
 using Ferreteria.Extensions;
 using Ferreteria.Helpers;
 using Ferreteria.Repositorios;
-using Ferreteria.Services;
+using Ferreteria.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Ferreteria.Controllers
 {
     public class AdminController(
-        IUsuarioRepository usuarioRepository,
-        IRolePermissionService rolePermissionService,
-        IPermisoService permisoService,
-        IRolService rolService,
-        IUsuarioService usuarioService) : Controller
+        IUsuarioRepository _userRepository,
+        IRolPermisoService _rolPermisoService) : Controller
     {
         private async Task<IReadOnlyList<string>> GetEffectivePermissionAsync()
         {
-            if (!int.TryParse(
-                User.FindFirstValue(ClaimTypes.NameIdentifier),
-                out var userId))
-            {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
                 return User.GetPermission();
-            }
 
-            var dbUser = await usuarioRepository
-                .GetUsuarioByIdWhitPermissionAsync(userId);
-
+            var dbUser = await _userRepository.GetUsuarioByIdWhitPermissionAsync(userId);
             return dbUser != null
                 ? EffectivePermission.FromUser(dbUser)
                 : User.GetPermission();
         }
 
-        // =========================================================
-        // PANEL DE ADMINISTRACIÓN
-        // =========================================================
-
         [Authorize(Policy = "admin.panel")]
         public IActionResult Index()
         {
             ViewBag.Permissions = User.GetPermission();
-
             return View();
         }
 
         // =========================================================
-        // ADMINISTRACIÓN DE PERMISOS
+        // PERMISOS
         // =========================================================
 
         [Authorize(Policy = "permiso.ver")]
-        [HttpGet]
-        public async Task<IActionResult> GetPermissionData()
+        [HttpPost]
+        public async Task<IActionResult> GetPermissionsData([FromForm] DataTablesRequestDto request)
         {
-            var permissions = await permisoService.GetAllAsync();
-
-            return Ok(permissions);
+            var result = await _rolPermisoService.GetPermissionsPagedAsync(request);
+            return Ok(result);
         }
 
         [Authorize(Policy = "permiso.ver")]
-        [HttpGet]
         public async Task<IActionResult> Permissions()
         {
             var effective = await GetEffectivePermissionAsync();
 
-            ViewBag.CanCreate = effective.Contains(
-                "permiso.crear",
-                StringComparer.OrdinalIgnoreCase);
-
+            ViewBag.CanCreate = effective.Contains("permiso.crear", StringComparer.OrdinalIgnoreCase);
             ViewBag.CanUpdate = effective.Any(p =>
-                string.Equals(
-                    p,
-                    "permiso.actualizar",
-                    StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(
-                    p,
-                    "permiso.crear",
-                    StringComparison.OrdinalIgnoreCase));
-
+                string.Equals(p, "permiso.actualizar", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p, "permiso.crear", StringComparison.OrdinalIgnoreCase));
             ViewBag.CanDelete = effective.Any(p =>
-                string.Equals(
-                    p,
-                    "permiso.borrar",
-                    StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(
-                    p,
-                    "permiso.crear",
-                    StringComparison.OrdinalIgnoreCase));
+                string.Equals(p, "permiso.borrar", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(p, "permiso.crear", StringComparison.OrdinalIgnoreCase));
 
-            return View();
+            return View("Permission");
         }
 
         [Authorize(Policy = "permiso.ver")]
         [HttpGet]
         public async Task<IActionResult> GetPermissionById(int id)
         {
-            var permission = await permisoService.GetByIdAsync(id);
-
+            var permission = await _rolPermisoService.GetPermissionByIdAsync(id);
             if (permission == null)
                 return NotFound(new { message = "Permiso no encontrado" });
 
@@ -105,421 +72,163 @@ namespace Ferreteria.Controllers
 
         [Authorize(Policy = "permiso.crear")]
         [HttpPost]
-        public async Task<IActionResult> CreatePermission(
-            [FromBody] CreatePermisoDto dto)
+        public async Task<IActionResult> CreatePermission([FromBody] SavePermisoDto dto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Revise los datos del formulario"
-                });
-            }
+                return BadRequest(new { message = "Revise los datos del formulario" });
 
-            var (success, errorMessage) =
-                await permisoService.CreateAsync(dto);
-
+            var (success, _, errorMessage) = await _rolPermisoService.CreatePermissionAsync(dto);
             if (!success)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = errorMessage
-                });
-            }
+                return BadRequest(new { success = false, message = errorMessage });
 
-            return Ok(new
-            {
-                success = true,
-                message = $"Permiso '{dto.Name}' creado correctamente"
-            });
+            return Ok(new { success = true, message = $"Permiso '{dto.Name}' creado correctamente" });
         }
 
         [Authorize(Policy = "permiso.actualizar")]
         [HttpPost]
-        public async Task<IActionResult> UpdatePermission(
-            int id,
-            [FromBody] UpdatePermisoDto dto)
+        public async Task<IActionResult> UpdatePermission([FromBody] SavePermisoDto dto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Revise los datos del formulario"
-                });
-            }
+                return BadRequest(new { message = "Revise los datos del formulario" });
 
-            var (success, errorMessage) =
-                await permisoService.UpdateAsync(id, dto);
-
+            var (success, errorMessage) = await _rolPermisoService.UpdatePermissionAsync(dto);
             if (!success)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = errorMessage
-                });
-            }
+                return BadRequest(new { success = false, message = errorMessage });
 
-            return Ok(new
-            {
-                success = true,
-                message = $"Permiso '{dto.Name}' actualizado correctamente"
-            });
+            return Ok(new { success = true, message = $"Permiso '{dto.Name}' actualizado correctamente" });
         }
 
         [Authorize(Policy = "permiso.borrar")]
         [HttpPost]
         public async Task<IActionResult> DeletePermission(int id)
         {
-            var (success, errorMessage) =
-                await permisoService.DeleteAsync(id);
-
+            var (success, errorMessage) = await _rolPermisoService.DeletePermissionAsync(id);
             if (!success)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = errorMessage
-                });
-            }
+                return BadRequest(new { success = false, message = errorMessage });
 
-            return Ok(new
-            {
-                success = true,
-                message = "Permiso eliminado correctamente"
-            });
+            return Ok(new { success = true, message = "Permiso eliminado correctamente" });
         }
 
         // =========================================================
-        // ADMINISTRACIÓN DE ROLES
+        // ROLES
         // =========================================================
 
         [Authorize(Policy = "rol.ver")]
-        [HttpGet]
         public async Task<IActionResult> Roles()
         {
-            var roles = await rolService.GetAllAsync();
-
+            var roles = await _rolPermisoService.GetAllRolesAsync();
             return View(roles);
         }
 
         [Authorize(Policy = "rol.crear")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateRol(CreateRolDto dto)
+        public async Task<IActionResult> CreateRole(CreateRolDto dto)
         {
             if (!ModelState.IsValid)
             {
-                var roles = await rolService.GetAllAsync();
-
+                var roles = await _rolPermisoService.GetAllRolesAsync();
                 ViewBag.CreateError = "El nombre del rol es obligatorio";
-
                 return View("Roles", roles);
             }
 
-            var (success, errorMessage) =
-                await rolService.CreateAsync(dto);
-
+            var (success, _, errorMessage) = await _rolPermisoService.CreateRoleAsync(dto);
             if (!success)
             {
-                var roles = await rolService.GetAllAsync();
-
+                var roles = await _rolPermisoService.GetAllRolesAsync();
                 ViewBag.CreateError = errorMessage;
-
                 return View("Roles", roles);
             }
 
-            TempData["Success"] =
-                $"Rol '{dto.Name}' creado correctamente";
-
+            TempData["Success"] = $"Rol '{dto.Name}' creado correctamente";
             return RedirectToAction(nameof(Roles));
         }
 
         [Authorize(Policy = "rol.asignar")]
-        [HttpGet]
         public async Task<IActionResult> RoleDetails(int id)
         {
-            var role = await rolService.GetByIdAsync(id);
-
+            var role = await _rolPermisoService.GetRoleByIdAsync(id);
             if (role == null)
                 return NotFound();
 
-            var allPermissions =
-                await rolePermissionService.GetAllPermissionsAsync();
+            var allPermission = await _rolPermisoService.GetAllPermissionsAsync();
+            ViewBag.AllPermission = allPermission;
 
-            var rolePermissions =
-                await rolePermissionService.GetRolePermissionsAsync(id);
-
-            ViewBag.AllPermission = allPermissions;
-            ViewBag.RolePermissions = rolePermissions;
-
-            return View(role);
-        }
-
-        [Authorize(Policy = "rol.actualizar")]
-        [HttpPost]
-        public async Task<IActionResult> UpdateRol(
-            int id,
-            [FromBody] UpdateRolDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Revise los datos del formulario"
-                });
-            }
-
-            var (success, errorMessage) =
-                await rolService.UpdateAsync(id, dto);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Rol actualizado correctamente"
-                    : errorMessage
-            });
-        }
-
-        [Authorize(Policy = "rol.borrar")]
-        [HttpPost]
-        public async Task<IActionResult> DeleteRol(int id)
-        {
-            var (success, errorMessage) =
-                await rolService.DeleteAsync(id);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Rol eliminado correctamente"
-                    : errorMessage
-            });
+            return View("RoleDetail", role);
         }
 
         [Authorize(Policy = "rol.asignar")]
         [HttpPost]
-        public async Task<IActionResult> AssignPermissionToRole(
-            int roleId,
-            int permissionId)
+        public async Task<IActionResult> AssignPermissionToRole(int roleId, int permissionId)
         {
-            var (success, errorMessage) =
-                await rolePermissionService.AssignPermissionToRoleAsync(
-                    roleId,
-                    permissionId);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Permiso asignado correctamente"
-                    : errorMessage
-            });
+            var (success, errorMessage) = await _rolPermisoService.AssignPermissionToRoleAsync(roleId, permissionId);
+            return Json(new { success, message = success ? "Permiso asignado" : errorMessage });
         }
 
         [Authorize(Policy = "rol.asignar")]
         [HttpPost]
-        public async Task<IActionResult> RemovePermissionFromRole(
-            int roleId,
-            int permissionId)
+        public async Task<IActionResult> RemovePermissionFromRole(int roleId, int permissionId)
         {
-            var (success, errorMessage) =
-                await rolePermissionService.RemovePermissionFromRoleAsync(
-                    roleId,
-                    permissionId);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Permiso removido correctamente"
-                    : errorMessage
-            });
+            var (success, errorMessage) = await _rolPermisoService.RemovePermissionFromRoleAsync(roleId, permissionId);
+            return Json(new { success, message = success ? "Permiso removido" : errorMessage });
         }
 
         // =========================================================
-        // ADMINISTRACIÓN DE USUARIOS
+        // USUARIOS
         // =========================================================
 
         [Authorize(Policy = "usuario.ver")]
-        [HttpGet]
         public async Task<IActionResult> Users()
         {
-            var users = await usuarioService.GetAllAsync();
-
-            return View(users);
-        }
-
-        [Authorize(Policy = "usuario.ver")]
-        [HttpGet]
-        public async Task<IActionResult> GetUserById(int id)
-        {
-            var user = await usuarioService.GetByIdAsync(id);
-
-            if (user == null)
-                return NotFound(new { message = "Usuario no encontrado" });
-
-            return Ok(user);
-        }
-
-        [Authorize(Policy = "usuario.crear")]
-        [HttpPost]
-        public async Task<IActionResult> CreateUser(
-            [FromBody] CreateUsuarioDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Revise los datos del formulario"
-                });
-            }
-
-            var (success, errorMessage) =
-                await usuarioService.CreateAsync(dto);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Usuario creado correctamente"
-                    : errorMessage
-            });
-        }
-
-        [Authorize(Policy = "usuario.actualizar")]
-        [HttpPost]
-        public async Task<IActionResult> UpdateUser(
-            int id,
-            [FromBody] UpdateUsuarioDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Revise los datos del formulario"
-                });
-            }
-
-            var (success, errorMessage) =
-                await usuarioService.UpdateAsync(id, dto);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Usuario actualizado correctamente"
-                    : errorMessage
-            });
-        }
-
-        [Authorize(Policy = "usuario.borrar")]
-        [HttpPost]
-        public async Task<IActionResult> DeleteUser(int id)
-        {
-            var (success, errorMessage) =
-                await usuarioService.DeleteAsync(id);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Usuario eliminado correctamente"
-                    : errorMessage
-            });
+            var users = await _rolPermisoService.GetAllUsersAsync();
+            return View("User", users);
         }
 
         [Authorize(Policy = "usuario.asignar")]
-        [HttpGet]
         public async Task<IActionResult> UserPermissions(int id)
         {
-            var user =
-                await rolePermissionService.GetUserPermissionsAsync(id);
-
+            var user = await _rolPermisoService.GetUserPermissionsAsync(id);
             if (user == null)
                 return NotFound();
 
-            var allPermissions =
-                await rolePermissionService.GetAllPermissionsAsync();
-
-            var allRoles =
-                await rolePermissionService.GetAllRolesAsync();
+            var allPermissions = await _rolPermisoService.GetAllPermissionsAsync();
+            var allRoles = await _rolPermisoService.GetAllRolesAsync();
 
             ViewBag.AllPermissions = allPermissions;
             ViewBag.AllRoles = allRoles;
-            ViewBag.CanChangeRole =
-                User.HasPermission("usuario.cambiar_rol");
+            ViewBag.CanChangeRole = User.HasPermission("usuario.cambiar_rol");
 
-            return View(user);
+            return View("UserPermission", user);
         }
 
         [Authorize(Policy = "usuario.asignar")]
         [HttpPost]
-        public async Task<IActionResult> AssignPermissionToUser(
-            int userId,
-            [FromBody] AssingUserPermisoDto dto)
+        public async Task<IActionResult> AssignPermissionToUser(int userId, [FromBody] AssingUserPermisoDto dto)
         {
-            var (success, errorMessage) =
-                await rolePermissionService.AssignPermissionToUserAsync(
-                    userId,
-                    dto);
-
+            var (success, errorMessage) = await _rolPermisoService.AssignPermissionToUserAsync(userId, dto);
             return Json(new
             {
                 success,
                 message = success
-                    ? (dto.IsGranted
-                        ? "Permiso concedido al usuario"
-                        : "Permiso denegado al usuario")
+                    ? (dto.IsGranted ? "Permiso concedido al usuario." : "Permiso denegado al usuario.")
                     : errorMessage
             });
         }
 
         [Authorize(Policy = "usuario.asignar")]
         [HttpPost]
-        public async Task<IActionResult> RemoveUserPermission(
-            int userId,
-            int permissionId)
+        public async Task<IActionResult> RemoveUserPermission(int userId, int permissionId)
         {
-            var (success, errorMessage) =
-                await rolePermissionService.RemoveUserPermissionAsync(
-                    userId,
-                    permissionId);
-
-            return Json(new
-            {
-                success,
-                message = success
-                    ? "Asignación directa removida"
-                    : errorMessage
-            });
+            var (success, errorMessage) = await _rolPermisoService.RemoveUserPermissionAsync(userId, permissionId);
+            return Json(new { success, message = success ? "Asignación directa removida" : errorMessage });
         }
 
         [Authorize(Policy = "usuario.cambiar_rol")]
         [HttpPost]
-        public async Task<IActionResult> UpdateRole(
-            int userId,
-            int roleId)
+        public async Task<IActionResult> UpdateRole(int userId, [FromBody] UpdateUserRoleDto dto)
         {
-            var (success, errorMessage) =
-                await rolePermissionService.UpdateUserRoleAsync(
-                    userId,
-                    roleId);
-
-            return Json(new 
-            {
-                success,
-                message = success
-                    ? "Rol actualizado correctamente"
-                    : errorMessage
-            });
+            var (success, errorMessage) = await _rolPermisoService.UpdateUserRoleAsync(userId, dto.RolId);
+            return Json(new { success, message = success ? "Rol actualizado" : errorMessage });
         }
     }
 }

@@ -17,4 +17,3 @@ namespace Ferreteria.DTOS
         public string Direccion { get; set; } = string.Empty;
     }
 }
-//

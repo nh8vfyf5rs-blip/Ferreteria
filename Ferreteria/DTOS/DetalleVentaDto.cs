@@ -1,5 +1,4 @@
-﻿using Ferreteria.Models;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Ferreteria.DTOS
 {
@@ -13,8 +12,9 @@ namespace Ferreteria.DTOS
         public int Cantidad { get; set; }
 
         [Required]
-        [Range (typeof(decimal),"0.01","999999999")]
+        [Range(0.01, 999999999d)]
         public decimal PrecioUnitario { get; set; }
+
         public decimal Subtotal { get; set; }
     }
 }

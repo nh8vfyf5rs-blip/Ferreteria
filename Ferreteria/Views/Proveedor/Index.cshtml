@@ -1,0 +1,99 @@
+﻿@using Ferreteria.Extensions
+@{
+    ViewData["Title"] = "Proveedores";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Proveedores</h1>
+        <p class="text-muted mb-0">Gestión de proveedores con DataTable</p>
+    </div>
+    @if (User.HasPermission("proveedor.crear"))
+    {
+        <button type="button" class="btn btn-primary btn-sm" id="btnNuevoProveedor">
+            <i class="fa-solid fa-plus me-1"></i> Nuevo Proveedor
+        </button>
+    }
+</div>
+
+<div class="card admin-card">
+    <div class="card-body">
+        <table id="proveedorTable" class="table table-striped table-hover w-100">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Empresa</th>
+                    <th>Contacto</th>
+                    <th>Correo</th>
+                    <th>Dirección</th>
+                    <th>Fecha Registro</th>
+                    <th>Total Compras</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@if (User.HasPermission("proveedor.crear") || User.HasPermission("proveedor.actualizar"))
+{
+    <div class="modal fade" id="proveedorModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="proveedorModalTitle">Proveedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="proveedorForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="proveedorId" name="Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="proveedorNombreEmpresa">Nombre de la Empresa</label>
+                                <input type="text" id="proveedorNombreEmpresa" name="NombreEmpresa" class="form-control" maxlength="150" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="proveedorContacto">Contacto</label>
+                                <input type="text" id="proveedorContacto" name="Contacto" class="form-control" maxlength="100" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="proveedorCorreo">Correo</label>
+                                <input type="email" id="proveedorCorreo" name="Correo" class="form-control" maxlength="150" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="proveedorDireccion">Dirección</label>
+                                <input type="text" id="proveedorDireccion" name="Direccion" class="form-control" maxlength="200" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarProveedor">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/just-validate@4.3.0/dist/just-validate.production.min.js"></script>
+    <script>
+        window.proveedoresConfig = {
+            canUpdate: @User.HasPermission("proveedor.actualizar").ToString().ToLower(),
+            canDelete: @User.HasPermission("proveedor.borrar").ToString().ToLower()
+                };
+    </script>
+    <script src="~/js/proveedor.js" asp-append-version="true"></script>
+}

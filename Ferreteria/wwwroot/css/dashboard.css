@@ -1,0 +1,387 @@
+﻿:root {
+    --dash-sidebar-bg: #1A112B;
+    --dash-sidebar-hover: #291B42;
+    --dash-sidebar-active: #342354;
+    --dash-sidebar-border: rgba(255, 255, 255, 0.08);
+    --dash-bg: #F5F4F9;
+    --dash-surface: #FFFFFF;
+    --dash-lila-soft: #EFEAFD;
+    --dash-lila-icon: #7C3AED;
+    --dash-primary-btn: #1B122C;
+    --dash-primary-btn-hover: #2C1E47;
+    --dash-text: #181226;
+    --dash-muted: #6B6878;
+    --dash-border: #E8E5F0;
+}
+
+ .app-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--dash-bg);
+    color: var(--dash-text);
+}
+
+ .app-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background-color: var(--dash-sidebar-bg);
+    color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1rem 0.7rem;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.25rem 0.4rem 1rem;
+    border-bottom: 1px solid var(--dash-sidebar-border);
+    margin-bottom: 0.75rem;
+}
+
+.sidebar-brand-title {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #FFFFFF;
+}
+
+.sidebar-brand-sub {
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #B9AECF;
+}
+
+.sidebar-section-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9D91B8;
+    padding: 0.4rem 0.65rem 0.25rem;
+}
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.48rem 0.65rem;
+    border-radius: 8px;
+    color: #DDD5EE;
+    text-decoration: none;
+    font-size: 0.82rem;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+    .sidebar-link:hover {
+        background-color: var(--dash-sidebar-hover);
+        color: #FFFFFF;
+    }
+
+    .sidebar-link.active {
+        background-color: var(--dash-sidebar-active);
+        color: #FFFFFF;
+        font-weight: 600;
+    }
+
+.sidebar-footer-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--dash-sidebar-border);
+    border-radius: 10px;
+    padding: 0.65rem;
+    margin-top: 0.75rem;
+    font-size: 0.74rem;
+}
+
+/* Área derecha (Topbar + Main) */
+.app-main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.app-topbar {
+    height: 60px;
+    background-color: var(--dash-surface);
+    border-bottom: 1px solid var(--dash-border);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.topbar-search {
+    flex: 1;
+    max-width: 420px;
+    position: relative;
+}
+
+    .topbar-search input {
+        width: 100%;
+        height: 36px;
+        padding: 0.35rem 0.85rem 0.35rem 2.2rem;
+        background-color: #F4F2F9;
+        border: 1px solid var(--dash-border);
+        border-radius: 8px;
+        font-size: 0.82rem;
+        color: var(--dash-text);
+    }
+
+        .topbar-search input:focus {
+            outline: none;
+            border-color: var(--dash-lila-icon);
+            background-color: var(--dash-surface);
+        }
+
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.topbar-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: var(--dash-lila-soft);
+    color: var(--dash-lila-icon);
+    font-weight: 700;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Contenido del Dashboard */
+.dashboard-content {
+    padding: 1.4rem 1.6rem 2rem;
+}
+
+.dashboard-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.dashboard-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--dash-text);
+    margin: 0;
+}
+
+.dashboard-subtitle {
+    font-size: 0.85rem;
+    color: var(--dash-muted);
+    margin: 0.15rem 0 0;
+}
+
+.btn-registrar-venta {
+    background-color: var(--dash-primary-btn);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.52rem 1rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+    .btn-registrar-venta:hover {
+        background-color: var(--dash-primary-btn-hover);
+        color: #FFFFFF;
+    }
+
+/* Tarjetas KPI */
+.kpi-card {
+    background-color: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    border-radius: 12px;
+    padding: 1.1rem 1.2rem;
+    height: 100%;
+    box-shadow: 0 2px 8px rgba(24, 18, 38, 0.03);
+}
+
+.kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--dash-muted);
+}
+
+.kpi-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: var(--dash-lila-soft);
+    color: var(--dash-lila-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+}
+
+.kpi-value {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--dash-text);
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+}
+
+.kpi-meta {
+    font-size: 0.74rem;
+    color: var(--dash-muted);
+}
+
+/* Paneles inferiores: Ventas recientes & Actividad reciente */
+.dash-panel {
+    background-color: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    border-radius: 12px;
+    padding: 1.15rem 1.25rem;
+    height: 100%;
+    box-shadow: 0 2px 8px rgba(24, 18, 38, 0.03);
+}
+
+.dash-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.dash-panel-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--dash-text);
+    margin: 0;
+}
+
+.dash-panel-sub {
+    font-size: 0.76rem;
+    color: var(--dash-muted);
+    margin: 0.1rem 0 0;
+}
+
+.recent-sales-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+    .recent-sales-table th {
+        text-transform: uppercase;
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+        color: var(--dash-muted);
+        font-weight: 600;
+        padding: 0.55rem 0.5rem;
+        border-bottom: 1px solid var(--dash-border);
+        text-align: left;
+    }
+
+    .recent-sales-table td {
+        padding: 0.62rem 0.5rem;
+        border-bottom: 1px solid #F1EFF7;
+        color: var(--dash-text);
+        vertical-align: middle;
+    }
+
+.badge-estado-pendiente {
+    background-color: #FEF3C7;
+    color: #92400E;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+}
+
+.badge-estado-completada {
+    background-color: #EDE9FE;
+    color: #5B21B6;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+}
+
+/* Actividad reciente */
+.activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+}
+
+.activity-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background-color: var(--dash-lila-soft);
+    color: var(--dash-lila-icon);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.activity-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--dash-text);
+    margin: 0;
+}
+
+.activity-detail {
+    font-size: 0.73rem;
+    color: var(--dash-muted);
+    margin: 0.1rem 0 0;
+}
+
+@media (max-width: 992px) {
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .app-sidebar {
+        width: 100%;
+    }
+}

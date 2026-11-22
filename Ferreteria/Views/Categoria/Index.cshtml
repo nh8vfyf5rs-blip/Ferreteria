@@ -1,0 +1,96 @@
+﻿@using Ferreteria.Extensions
+@{
+    ViewData["Title"] = "Categorías";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Categorías</h1>
+        <p class="text-muted mb-0">Gestiona las categorías de productos de Fierro Nic con DataTable</p>
+    </div>
+    @if (User.HasPermission("categoria.crear"))
+    {
+        <button type="button" id="btnNuevaCategoria" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> Nueva Categoría
+        </button>
+    }
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card admin-card">
+    <div class="card-body">
+        <table id="categoriaTable" class="table table-striped table-hover w-100">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Total Productos</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@if (User.HasPermission("categoria.crear") || User.HasPermission("categoria.actualizar"))
+{
+    <div class="modal fade" id="categoriaModal" tabindex="-1" aria-labelledby="categoriaModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="categoriaForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="Id" name="Id" />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="categoriaModalTitle">Registrar / Editar Categoría</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="Nombre" class="form-label">Nombre</label>
+                                <input type="text" id="Nombre" name="Nombre" class="form-control solo-letras" maxlength="100" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="Descripcion" class="form-label">Descripción</label>
+                                <input type="text" id="Descripcion" name="Descripcion" class="form-control" maxlength="200" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" id="btnGuardarCategoria" class="btn btn-primary">Guardar Categoría</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/just-validate@4.3.0/dist/just-validate.production.min.js"></script>
+    <script>
+        window.categoriasConfig = {
+            canUpdate: @User.HasPermission("categoria.actualizar").ToString().ToLower(),
+            canDelete: @User.HasPermission("categoria.borrar").ToString().ToLower()
+        };
+    </script>
+    <script src="~/js/categoria.js" asp-append-version="true"></script>
+}

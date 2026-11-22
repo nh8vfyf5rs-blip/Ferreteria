@@ -1,0 +1,97 @@
+﻿@using Ferreteria.Extensions
+@{
+    ViewData["Title"] = "Inventario";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Inventario</h1>
+        <p class="text-muted mb-0">Gestiona el inventario de Fierro Nic con DataTable</p>
+    </div>
+    @if (User.HasPermission("inventario.crear"))
+    {
+        <button type="button" class="btn btn-primary btn-sm" id="btnNuevoInventario">
+            <i class="fa-solid fa-plus me-1"></i> Nuevo Registro
+        </button>
+    }
+</div>
+
+<div class="card admin-card">
+    <div class="card-body">
+        <table id="inventarioTable" class="table table-striped table-hover w-100">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Sucursal</th>
+                    <th>Almacén</th>
+                    <th>Producto</th>
+                    <th>Stock</th>
+                    <th>Última Actualización</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@if (User.HasPermission("inventario.crear") || User.HasPermission("inventario.actualizar"))
+{
+    <div class="modal fade" id="inventarioModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inventarioModalTitle">Inventario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="inventarioForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" id="Id" name="Id" />
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="AlmacenId">Almacén</label>
+                                <select id="AlmacenId" name="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select">
+                                    <option value="">-- Seleccione --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="ProductoId">Producto</label>
+                                <select id="ProductoId" name="ProductoId" asp-items="ViewBag.Productos" class="form-select">
+                                    <option value="">-- Seleccione --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label" for="Stock">Stock</label>
+                                <input type="number" min="0" id="Stock" name="Stock" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnGuardarInventario">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://unpkg.com/just-validate@4.3.0/dist/just-validate.production.min.js"></script>
+    <script>
+        window.inventariosConfig = {
+            canUpdate: @User.HasPermission("inventario.actualizar").ToString().ToLower(),
+            canDelete: @User.HasPermission("inventario.borrar").ToString().ToLower()
+                };
+    </script>
+    <script src="~/js/inventario.js" asp-append-version="true"></script>
+}

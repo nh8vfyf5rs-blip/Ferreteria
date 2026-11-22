@@ -10,6 +10,8 @@ namespace Ferreteria.DTOS
         public int AlmacenId { get; set; }
         public string AlmacenNombre { get; set; }=string.Empty;
         public int ProductoId { get; set; }
-        public string ProductoName { get; set; }= string.Empty;
+        public string ProductoNombre { get; set; }= string.Empty;
+        public string SucursalNombre { get; internal set; }
+        public int SucursalId { get; internal set; }
     }
 }

@@ -18,7 +18,6 @@ namespace Ferreteria.Middlewares
             HttpContext context,
             IAuthService authService)
         {
-            // Evitar validaciones innecesarias en rutas públicas
             if (context.Request.Path.StartsWithSegments("/Auth"))
             {
                 await _next(context);

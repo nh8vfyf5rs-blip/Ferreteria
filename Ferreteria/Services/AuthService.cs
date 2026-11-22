@@ -1,8 +1,9 @@
 ﻿using System.Net.Mail;
 using System.Security.Cryptography;
 using Ferreteria.DTOS;
-using Ferreteria.Models;
+using Ferreteria.Models.Segurudad;
 using Ferreteria.Repositorios;
+using Microsoft.Extensions.Configuration;
 
 namespace Ferreteria.Services
 {
@@ -10,10 +11,13 @@ namespace Ferreteria.Services
         IUsuarioRepository userRepo,
         IRolRepository roleRepo,
         ITokenService tokenService,
-        IEmailService emailService) : IAuthService
+        IEmailService emailService,
+        IConfiguration config) : IAuthService
     {
+        private string BaseUrl => (config["App:BaseUrl"] ?? "https://localhost:7255").TrimEnd('/');
+
         public async Task<bool> ChangePasswordAsync(
-           string userName, ChangePasswordDto dto)
+            string userName, ChangePasswordDto dto)
         {
             var user = await userRepo.GetUsuarioByUserName(userName);
 
@@ -127,6 +131,10 @@ namespace Ferreteria.Services
             if (usuarioRole == null)
                 return (false, "El rol Usuario no está configurado.");
 
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var rawToken = Convert.ToBase64String(tokenBytes);
+            var encodedToken = Uri.EscapeDataString(rawToken);
+
             var user = new Usuario
             {
                 UserName = dto.Username,
@@ -134,20 +142,14 @@ namespace Ferreteria.Services
                 Password = BCrypt.Net.BCrypt.EnhancedHashPassword(
                     dto.Password),
                 RolId = usuarioRole.Id,
-                EmailConfirmed = false
+                EmailConfirmed = false,
+                EmailConfirmToken = rawToken
             };
 
-            var tokenBytes = RandomNumberGenerator.GetBytes(64);
-            var rawToken = Convert.ToBase64String(tokenBytes);
-            var encodedToken = Uri.EscapeDataString(rawToken);
-
-            user.EmailConfirmToken = rawToken;
-
             await userRepo.CreateAsync(user);
-            await userRepo.SaveAsync();
 
             string confirmationLink =
-                $"https://localhost:7120/Auth/ConfirmEmail?email={user.Email}&token={encodedToken}";
+                $"{BaseUrl}/Auth/ConfirmEmail?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
 
             string htmlBody =
                 "<!DOCTYPE html><html><body>" +
@@ -190,7 +192,7 @@ namespace Ferreteria.Services
             await userRepo.SaveAsync();
 
             string confirmationLink =
-                $"https://localhost:7120/Auth/ConfirmEmail?email={user.Email}&token={encodedToken}";
+                $"{BaseUrl}/Auth/ConfirmEmail?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
 
             string htmlBody =
                 "<!DOCTYPE html><html><body>" +
@@ -255,14 +257,14 @@ namespace Ferreteria.Services
 
             await userRepo.SaveAsync();
 
-            string confirmationLink =
-                $"https://localhost:7255/Auth/ResetPassword?email={user.Email}&token={encodedToken}";
+            string resetLink =
+                $"{BaseUrl}/Auth/ResetPassword?email={Uri.EscapeDataString(user.Email)}&token={encodedToken}";
 
             string htmlBody =
                 "<!DOCTYPE html><html><body>" +
                 "<p>Hola,</p>" +
                 "<p>Haz clic en el siguiente botón para restablecer tu contraseña:</p>" +
-                "<p><a href=\"" + confirmationLink +
+                "<p><a href=\"" + resetLink +
                 "\" style='background:#007BBFF;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;'>" +
                 "Restablecer contraseña</a></p>" +
                 "</body></html>";
